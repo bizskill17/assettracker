@@ -213,7 +213,7 @@ textarea{resize:vertical;min-height:60px}
 .rrow{padding:10px 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:2px}
 .rrow:first-child{border-top:0}
 .rrow .top1{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
-.appbar,.bnav,.mob-only{display:none}
+.appbar,.bnav,.mob-only,.pageadd{display:none}
 .mmenu .mitem{display:flex;align-items:center;gap:12px;padding:14px;border-top:1px solid var(--line);text-decoration:none;color:var(--ink)}
 .mmenu .mitem:first-child{border-top:0}
 .mmenu .mitem .grow{flex:1}
@@ -223,7 +223,6 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
 @media (min-width:1000px){
   .shell{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100%}
   .side{display:flex;flex-direction:column;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--surface);border-right:1px solid var(--line);padding:18px 12px 24px}
-  header.top .actions{display:none}
   .wrap{margin:0;padding:24px 28px 60px;max-width:1240px}
 }
 @media (max-width:999px){
@@ -308,8 +307,7 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
       <p id="subtitle" hidden></p>
     </div>
     <div class="actions">
-      <button class="btn" id="btnAddAsset" type="button">+ Add asset</button>
-      <button class="btn primary" id="btnMove" type="button">⇄ Log a movement</button>
+      <button class="btn primary" id="deskAdd" type="button" hidden>+ Add</button>
     </div>
   </header>
 
@@ -838,6 +836,8 @@ function setTab(h){let t=h||"home",sub=null;
   $("abTitle").textContent=t==="home"?"Asset Tracker":title;$("deskTitle").textContent=title;
   $("abBack").classList.toggle("ghost",t==="home");
   $("abAdd").classList.toggle("ghost",!S.canWrite||!(t==="assets"||t==="blocks"||(t==="masters"&&sub)||t==="home"));
+  const dl={assets:"+ Add asset",blocks:"+ Add block",masters:"+ Add "+MASTERS[S.master].one,movements:"⇄ Log a movement"}[t];
+  $("deskAdd").textContent=dl||"";$("deskAdd").hidden=!dl||!S.canWrite||((t==="blocks"||t==="masters")&&document.body.classList.contains("not-admin"));
   renderSide();renderMasters();window.scrollTo(0,0);}
 MQ.addEventListener?.("change",()=>setTab(location.hash.slice(1)));
 window.addEventListener("hashchange",()=>setTab(location.hash.slice(1)));
@@ -1023,14 +1023,14 @@ document.addEventListener("click",e=>{
   if(t.dataset.editmaster){openMaster(t.dataset.editmaster);return}
   if(t.classList.contains("tile")){const a=t.dataset.act;if(a==="#moves"){location.hash="#movements";$("mRange").value="7";renderMoves();}else{location.hash="#assets";$("fStatus").value=a;renderAssets();}}
 });
-$("btnAddAsset").addEventListener("click",()=>openAsset(null));
+$("deskAdd").addEventListener("click",()=>{if(S.tab==="assets")openAsset(null);else if(S.tab==="blocks")openBlock(null);else if(S.tab==="masters")openMaster(null);else if(S.tab==="movements")openMove(null);});
 $("sideAdd").addEventListener("click",()=>openAsset(null));
 $("bnMove").addEventListener("click",()=>openMove(null));
 $("abBack").addEventListener("click",()=>{location.hash=S.tab==="masters"&&S.masterOpen?"#masters":"#home";});
 $("abAdd").addEventListener("click",()=>{if(S.tab==="blocks")openBlock(null);else if(S.tab==="masters")openMaster(null);else openAsset(null);});
 for(const id of ["fBlockH","fBlockA","fBlockM"])$(id).addEventListener("change",e=>{S.block=e.target.value;render();});
 $("sideMove").addEventListener("click",()=>openMove(null));
-$("btnMove").addEventListener("click",()=>openMove(null));
+
 $("btnAddBlock").addEventListener("click",()=>openBlock(null));
 $("btnAddMaster").addEventListener("click",()=>openMaster(null));
 $("btnBulkRooms").addEventListener("click",openBulk);
