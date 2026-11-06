@@ -683,7 +683,55 @@ function roomOptions(){const seen=new Map();
   for(const a of S.assets.values())if(inB(a.blockId)&&a.room)seen.set(roomKey(a.blockId,a.room),[a.blockId,a.room]);
   const one=S.bsel.size===1;
   return [...seen.entries()].sort((x,y)=>ncmp(bname(x[1][0]),bname(y[1][0]))||ncmp(x[1][1],y[1][1])).map(([k,[b,r]])=>({v:k,t:one?r:`${r} · ${bname(b)}`}));}
-function refreshOptions(){optsMulti($("fCat"),cats());optsMulti($("mReason"),reasons().map(r=>r.name));const ro=roomOptions();optsMulti($("fRoomA"),ro);optsMulti($("fRoomM"),ro);}
+function refreshOptions(){facetAssets();facetMoves();}
+/* Cascading filters: each list shows only values that still have matches under the OTHER filters, with counts.
+   Ticked values stay listed (even at 0) so they can be unticked. */
+function facetOpts(sel,order,counts,label){
+  const picked=new Set(selVals(sel));
+  const keys=order.filter(k=>counts.get(k)||picked.has(k));
+  optsMulti(sel,keys.map(k=>({v:k,t:`${label(k)} (${counts.get(k)||0})`})));
+}
+function bump(m,k){m.set(k,(m.get(k)||0)+1);}
+function facetAssets(){
+  const f={blk:S.bsel,room:new Set(selVals($("fRoomA"))),cat:new Set(selVals($("fCat"))),st:new Set(selVals($("fStatus")))};
+  const ok=(a,skip)=>(skip==="blk"||!f.blk.size||f.blk.has(a.blockId))&&(skip==="room"||!f.room.size||f.room.has(roomKey(a.blockId,a.room)))&&
+    (skip==="cat"||!f.cat.size||f.cat.has(a.category))&&(skip==="st"||!f.st.size||f.st.has(a.status));
+  const c={blk:new Map(),room:new Map(),cat:new Map(),st:new Map()};
+  for(const a of S.assets.values()){
+    if(ok(a,"blk"))bump(c.blk,a.blockId);
+    if(ok(a,"room")&&a.room)bump(c.room,roomKey(a.blockId,a.room));
+    if(ok(a,"cat"))bump(c.cat,a.category);
+    if(ok(a,"st"))bump(c.st,a.status);
+  }
+  facetOpts($("fBlockA"),blockList().map(b=>b.id),c.blk,bname);
+  const one=S.bsel.size===1;
+  const roomOrder=[...c.room.keys(),...selVals($("fRoomA"))].filter((k,i,arr)=>arr.indexOf(k)===i)
+    .sort((x,y)=>{const [bx,rx]=x.split("::"),[by,ry]=y.split("::");return ncmp(bname(bx),bname(by))||ncmp(rx,ry);});
+  facetOpts($("fRoomA"),roomOrder,c.room,k=>{const [b,r]=k.split("::");return one?r:`${r} · ${bname(b)}`;});
+  const catOrder=[...cats(),...[...c.cat.keys()].filter(k=>!cats().includes(k))];
+  facetOpts($("fCat"),catOrder,c.cat,k=>k||"(none)");
+  facetOpts($("fStatus"),STATUSES,c.st,k=>k);
+}
+function facetMoves(){
+  const days=+$("mRange").value,since=days?Date.now()-days*864e5:0;
+  const f={blk:S.bsel,room:new Set(selVals($("fRoomM"))),rs:new Set(selVals($("mReason")))};
+  const inBlk=m=>!f.blk.size||f.blk.has(m.toBlockId)||f.blk.has(m.fromBlockId);
+  const inRoom=m=>!f.room.size||f.room.has(roomKey(m.fromBlockId,m.fromRoom))||f.room.has(roomKey(m.toBlockId,m.toRoom));
+  const inRs=m=>!f.rs.size||f.rs.has(m.reason);
+  const c={blk:new Map(),room:new Map(),rs:new Map()};
+  for(const m of S.moves){if(m.at<since)continue;
+    if(inRoom(m)&&inRs(m)){bump(c.blk,m.toBlockId);if(m.fromBlockId!==m.toBlockId)bump(c.blk,m.fromBlockId);}
+    if(inBlk(m)&&inRs(m)){const ks=new Set();if(m.fromRoom&&(!f.blk.size||f.blk.has(m.fromBlockId)))ks.add(roomKey(m.fromBlockId,m.fromRoom));if(m.toRoom&&(!f.blk.size||f.blk.has(m.toBlockId)))ks.add(roomKey(m.toBlockId,m.toRoom));ks.forEach(k=>bump(c.room,k));}
+    if(inBlk(m)&&inRoom(m))bump(c.rs,m.reason);
+  }
+  facetOpts($("fBlockM"),blockList().map(b=>b.id),c.blk,bname);
+  const one=S.bsel.size===1;
+  const roomOrder=[...c.room.keys(),...selVals($("fRoomM"))].filter((k,i,arr)=>arr.indexOf(k)===i)
+    .sort((x,y)=>{const [bx,rx]=x.split("::"),[by,ry]=y.split("::");return ncmp(bname(bx),bname(by))||ncmp(rx,ry);});
+  facetOpts($("fRoomM"),roomOrder,c.room,k=>{const [b,r]=k.split("::");return one?r:`${r} · ${bname(b)}`;});
+  const rsOrder=[...reasons().map(r=>r.name),...[...c.rs.keys()].filter(k=>!reasons().some(r=>r.name===k))];
+  facetOpts($("mReason"),rsOrder,c.rs,k=>k);
+}
 optsMulti($("fStatus"),STATUSES);opts($("aStatus"),STATUSES);opts($("mStatusIn"),STATUSES);
 
 /* picker = select from master + "Other (type it)" */
@@ -720,7 +768,7 @@ function renderSide(){
   $("sideBlocks").innerHTML=[{id:"all",name:"All blocks",n:S.assets.size},...blockList().map(b=>({id:b.id,name:b.name,n:counts[b.id]||0}))]
     .map(b=>`<button class="sitem" type="button" data-block="${esc(b.id)}" aria-pressed="${b.id==="all"?!S.bsel.size:S.bsel.has(b.id)}">${esc(b.name)} <b>${b.n}</b></button>`).join("");
 }
-function render(){refreshOptions();setTimeout(updateBadges,0);renderSide();renderTiles();renderStrip();renderHome();renderAssets();renderMoves();renderBlocks();renderMasters();
+function render(){setTimeout(updateBadges,0);renderSide();renderTiles();renderStrip();refreshOptions();renderHome();renderAssets();renderMoves();renderBlocks();renderMasters();
   const anySample=[S.blocks,S.assets,S.rooms,S.staff,S.vendors].some(m=>[...m.values()].some(x=>x.sample));
   $("sampleNote").hidden=true;
 }
@@ -736,7 +784,8 @@ function renderTiles(){
 function renderStrip(){
   const counts={};for(const a of S.assets.values())counts[a.blockId]=(counts[a.blockId]||0)+1;
   const items=blockList().map(b=>({v:b.id,t:`${b.name} (${counts[b.id]||0})`}));
-  for(const id of ["fBlockH","fBlockA","fBlockM"]){optsMulti($(id),items);setSel($(id),[...S.bsel]);}
+  optsMulti($("fBlockH"),items);setSel($("fBlockH"),[...S.bsel]);
+  for(const id of ["fBlockA","fBlockM"])setSel($(id),[...S.bsel]);
   const scoped=["assets","movements","blocks","home"].includes(S.tab)||(S.tab==="masters"&&["rooms","staff"].includes(S.master));
   const names=[...S.bsel].map(bname);
   $("subtitle").textContent=!S.bsel.size||!scoped?"":`Showing ${names.length>1?names.slice(0,-1).join(", ")+" and "+names.at(-1):names[0]} only.`;$("subtitle").hidden=!S.bsel.size||!scoped;
@@ -1196,7 +1245,7 @@ document.addEventListener("click",e=>{
   if(t.dataset.editmaster){openMaster(t.dataset.editmaster);return}
   if(t.dataset.delmaster){delMaster(t.dataset.delmaster,toast);return}
   if(t.dataset.delblock){delBlock(t.dataset.delblock,toast);return}
-  if(t.classList.contains("tile")){const a=t.dataset.act;if(a==="#moves"){location.hash="#movements";$("mRange").value="7";renderMoves();}else{location.hash="#assets";setSel($("fStatus"),a?[a]:[]);renderAssets();updateBadges();}}
+  if(t.classList.contains("tile")){const a=t.dataset.act;if(a==="#moves"){location.hash="#movements";$("mRange").value="7";renderMoves();}else{location.hash="#assets";setSel($("fStatus"),a?[a]:[]);facetAssets();renderAssets();updateBadges();}}
 });
 $("deskAdd").addEventListener("click",()=>{if(S.tab==="assets")openAsset(null);else if(S.tab==="blocks")openBlock(null);else if(S.tab==="masters")openMaster(null);else if(S.tab==="movements")openMove(null);});
 $("sideAdd").addEventListener("click",()=>openAsset(null));
@@ -1213,8 +1262,8 @@ $("sideMove").addEventListener("click",()=>openMove(null));
 $("btnAddBlock").addEventListener("click",()=>openBlock(null));
 $("btnAddMaster").addEventListener("click",()=>openMaster(null));
 $("btnBulkRooms").addEventListener("click",openBulk);
-["q","fCat","fStatus","fRoomA"].forEach(id=>$(id).addEventListener("input",()=>{renderAssets();updateBadges();}));
-["mq","mReason","mRange","fRoomM"].forEach(id=>$(id).addEventListener("input",()=>{renderMoves();updateBadges();}));
+["q","fCat","fStatus","fRoomA"].forEach(id=>$(id).addEventListener("input",()=>{facetAssets();renderAssets();updateBadges();}));
+["mq","mReason","mRange","fRoomM"].forEach(id=>$(id).addEventListener("input",()=>{facetMoves();renderMoves();updateBadges();}));
 $("xq").addEventListener("input",renderMasters);
 
 function errText(e){const c=e&&e.code;
