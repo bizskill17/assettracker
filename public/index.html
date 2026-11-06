@@ -22,6 +22,7 @@
   --warn:#9a6100; --warn-bg:#fbefd6;
   --bad:#b23a32; --bad-bg:#f8e3e0;
   --idle:#4f5d68; --idle-bg:#e8ebee;
+  --vio:#5b47b0; --vio-bg:#ece8fb;
   --display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
   --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
@@ -32,7 +33,7 @@
     --paper:#12171c; --surface:#1a2128; --ink:#e6ebee; --muted:#9aa7b0; --line:#2b353e;
     --accent:#6fb0de; --accent-ink:#0d1a24; --accent-soft:#1d3142;
     --ok:#6cc890; --ok-bg:#183326; --warn:#e8b55a; --warn-bg:#352a14;
-    --bad:#ee8a80; --bad-bg:#3a1f1c; --idle:#a9b5be; --idle-bg:#252e36;
+    --bad:#ee8a80; --bad-bg:#3a1f1c; --idle:#a9b5be; --idle-bg:#252e36; --vio:#b7a8f5; --vio-bg:#2a2445;
     color-scheme:dark;
   }
 }
@@ -40,7 +41,7 @@
   --paper:#12171c; --surface:#1a2128; --ink:#e6ebee; --muted:#9aa7b0; --line:#2b353e;
   --accent:#6fb0de; --accent-ink:#0d1a24; --accent-soft:#1d3142;
   --ok:#6cc890; --ok-bg:#183326; --warn:#e8b55a; --warn-bg:#352a14;
-  --bad:#ee8a80; --bad-bg:#3a1f1c; --idle:#a9b5be; --idle-bg:#252e36;
+  --bad:#ee8a80; --bad-bg:#3a1f1c; --idle:#a9b5be; --idle-bg:#252e36; --vio:#b7a8f5; --vio-bg:#2a2445;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -71,6 +72,16 @@ header.top p{margin:2px 0 0;color:var(--muted);font-size:14px}
 .tile:hover{border-color:var(--accent)}
 .tile .n{font-family:var(--display);font-size:28px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.1}
 .tile .l{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.tile{--tc:var(--ink);--tb:var(--surface)}
+.tile.t-total{--tc:var(--accent);--tb:var(--accent-soft)}
+.tile.t-inuse{--tc:var(--ok);--tb:var(--ok-bg)}
+.tile.t-store{--tc:var(--idle);--tb:var(--idle-bg)}
+.tile.t-repair{--tc:var(--warn);--tb:var(--warn-bg)}
+.tile.t-missing{--tc:var(--bad);--tb:var(--bad-bg)}
+.tile.t-moves{--tc:var(--vio);--tb:var(--vio-bg)}
+.tile[class*="t-"]{background:var(--tb);border-color:color-mix(in srgb,var(--tc) 22%,transparent)}
+.tile[class*="t-"] .n{color:var(--tc)}
+.tile[class*="t-"]:hover{border-color:var(--tc)}
 .dot{width:8px;height:8px;border-radius:50%;display:inline-block}
 
 .blockstrip{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
@@ -688,8 +699,9 @@ function renderTiles(){
   const list=scopedAssets();const c=s=>list.filter(a=>a.status===s).length;
   const week=Date.now()-7*864e5;
   const mv=S.moves.filter(m=>m.at>=week&&(S.block==="all"||m.toBlockId===S.block||m.fromBlockId===S.block)).length;
-  const t=[["Total assets",list.length,null,""],["In use",c("In use"),"var(--ok)","In use"],["In store",c("In store"),"var(--idle)","In store"],["Under repair",c("Under repair"),"var(--warn)","Under repair"],["Missing",c("Missing"),"var(--bad)","Missing"],["Moves, last 7 days",mv,"var(--accent)","#moves"]];
-  $("tiles").innerHTML=t.map(([l,n,col,act])=>`<button class="tile" type="button" data-act="${esc(act)}"><span class="n">${n}</span><span class="l">${col?`<span class="dot" style="background:${col}"></span>`:""}${esc(l)}</span></button>`).join("");
+  const t=[["Total assets",list.length,null,""],["In use",c("In use"),"var(--ok)","In use"],["In store",c("In store"),"var(--idle)","In store"],["Under repair",c("Under repair"),"var(--warn)","Under repair"],["Missing",c("Missing"),"var(--bad)","Missing"],["Moves, last 7 days",mv,"var(--vio)","#moves"]];
+  const tone=["t-total","t-inuse","t-store","t-repair","t-missing","t-moves"];
+  $("tiles").innerHTML=t.map(([l,n,col,act],i)=>`<button class="tile ${tone[i]}" type="button" data-act="${esc(act)}"><span class="n">${n}</span><span class="l">${col?`<span class="dot" style="background:${col}"></span>`:""}${esc(l)}</span></button>`).join("");
 }
 function renderStrip(){
   const counts={};for(const a of S.assets.values())counts[a.blockId]=(counts[a.blockId]||0)+1;
