@@ -217,6 +217,18 @@ select.ss-native{display:none!important}
 .ss-opt{padding:8px 10px;border-radius:6px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ss-opt.hi{background:var(--accent-soft)}
 .ss-opt.sel{font-weight:600;color:var(--accent)}
+.ss-cnt{background:var(--accent);color:var(--accent-ink);font-size:11px;font-weight:700;border-radius:99px;padding:1px 7px;flex:none}
+.ss.ss-on{border-color:var(--accent);background:var(--accent-soft)}
+.ss-chk{display:flex;align-items:center;gap:10px}
+.ss-box{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--line);display:grid;place-items:center;flex:none;background:var(--surface)}
+.ss-box svg{width:13px;height:13px;stroke:transparent;stroke-width:3}
+.ss-chk.on .ss-box{background:var(--accent);border-color:var(--accent)}
+.ss-chk.on .ss-box svg{stroke:var(--accent-ink)}
+.ss-foot{display:none;justify-content:space-between;border-top:1px solid var(--line);padding:6px 8px}
+.ss-panel.ss-multi .ss-foot{display:flex}
+.ss-foot button{background:none;border:0;font:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:4px 6px;border-radius:6px;color:var(--accent)}
+.ss-foot .ss-clr{color:var(--bad)}
+.ss-foot button:hover{background:var(--paper)}
 .ss-empty{padding:10px;color:var(--muted);font-size:14px}
 .dtrow{display:grid;grid-template-columns:1fr auto;gap:8px}
 .dtdate{position:relative;display:flex}
@@ -400,7 +412,7 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
   <section id="view-home">
     <div class="homehead mob-only">
       <div class="hh-title">Hostel assets</div>
-      <select id="fBlockH" aria-label="Block"></select>
+      <select id="fBlockH" multiple data-label="Blocks" data-all="All blocks" aria-label="Block"></select>
     </div>
     <section class="tiles" id="tiles" aria-label="Summary"></section>
     <div class="notice" id="sampleNote" hidden>
@@ -423,9 +435,9 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
     <div class="filters" id="filtA">
       <div class="srow"><input type="search" id="q" placeholder="Search tag, item or room…" aria-label="Search assets"><button class="fbtn" type="button" data-ftoggle="filtA" aria-expanded="false" aria-label="Show filters"><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg><span class="fbadge" hidden></span></button><button class="fclr" type="button" data-fclear="filtA" aria-label="Clear search and filters" title="Clear filters" hidden><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/><path d="M16 16l5 5M21 16l-5 5"/></svg></button></div>
       <div class="fpanel">
-        <select id="fBlockA" class="mob-only" aria-label="Block"></select>
-        <select id="fCat" aria-label="Category"></select>
-        <select id="fStatus" aria-label="Status"></select>
+        <select id="fBlockA" class="mob-only" multiple data-label="Blocks" data-all="All blocks" aria-label="Block"></select>
+        <select id="fCat" multiple data-label="Categories" data-all="All categories" aria-label="Category"></select>
+        <select id="fStatus" multiple data-label="Statuses" data-all="All statuses" aria-label="Status"></select>
       </div>
       <span class="count" id="assetCount"></span>
     </div>
@@ -436,8 +448,8 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
     <div class="filters" id="filtM">
       <div class="srow"><input type="search" id="mq" placeholder="Search tag, item, person, vendor…" aria-label="Search movements"><button class="fbtn" type="button" data-ftoggle="filtM" aria-expanded="false" aria-label="Show filters"><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg><span class="fbadge" hidden></span></button><button class="fclr" type="button" data-fclear="filtM" aria-label="Clear search and filters" title="Clear filters" hidden><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/><path d="M16 16l5 5M21 16l-5 5"/></svg></button></div>
       <div class="fpanel">
-      <select id="fBlockM" class="mob-only" aria-label="Block"></select>
-      <select id="mReason" aria-label="Reason"></select>
+      <select id="fBlockM" class="mob-only" multiple data-label="Blocks" data-all="All blocks" aria-label="Block"></select>
+      <select id="mReason" multiple data-label="Reasons" data-all="All reasons" aria-label="Reason"></select>
       <select id="mRange" aria-label="Period">
         <option value="7">Last 7 days</option>
         <option value="30" selected>Last 30 days</option>
@@ -634,7 +646,7 @@ const ROLES=["Admin","Warden","Asst. Warden","Maintenance","Store keeper","Offic
 const VENDOR_KINDS=["Supplier","Repair contractor","Supplier & repair"];
 const DEST_OPTS=[["","Choose each time"],["Store","Send to the Store-type location"],["Repair","Send to the Repair-type location"],["Same","Stays where it is"]];
 
-const S={blocks:new Map(),assets:new Map(),moves:[],rooms:new Map(),staff:new Map(),itemTypes:new Map(),vendors:new Map(),categories:new Map(),reasons:new Map(),
+const S={bsel:new Set(),blocks:new Map(),assets:new Map(),moves:[],rooms:new Map(),staff:new Map(),itemTypes:new Map(),vendors:new Map(),categories:new Map(),reasons:new Map(),
   block:"all",tab:"assets",master:"rooms",db:null,uid:null,canWrite:true,loaded:{}};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -655,8 +667,14 @@ function itemTypeList(){return entries(S.itemTypes).sort((a,b)=>ncmp(a.name,b.na
 
 function opts(sel,list,first){const keep=sel.value;sel.innerHTML=(first!=null?`<option value="">${esc(first)}</option>`:"")+list.map(v=>typeof v==="string"?`<option>${esc(v)}</option>`:`<option value="${esc(v.v)}">${esc(v.t)}</option>`).join("");
   if([...sel.options].some(o=>o.value===keep))sel.value=keep;}
-function refreshOptions(){opts($("fCat"),cats(),"All categories");opts($("mReason"),reasons().map(r=>r.name),"All reasons");}
-opts($("fStatus"),STATUSES,"All statuses");opts($("aStatus"),STATUSES);opts($("mStatusIn"),STATUSES);
+/* multi-select filter helpers */
+const selVals=sel=>[...sel.options].filter(o=>o.selected).map(o=>o.value);
+function setSel(sel,vals){const set=new Set(vals);for(const o of sel.options)o.selected=set.has(o.value);if(SS)SS.update(sel);}
+function optsMulti(sel,list){const keep=new Set(selVals(sel));sel.innerHTML=list.map(v=>{const o=typeof v==="string"?{v,t:v}:v;return `<option value="${esc(o.v)}"${keep.has(o.v)?" selected":""}>${esc(o.t)}</option>`;}).join("");if(SS)SS.update(sel);}
+const inB=id=>!S.bsel.size||S.bsel.has(id);
+const oneB=()=>S.bsel.size===1?[...S.bsel][0]:"";
+function refreshOptions(){optsMulti($("fCat"),cats());optsMulti($("mReason"),reasons().map(r=>r.name));}
+optsMulti($("fStatus"),STATUSES);opts($("aStatus"),STATUSES);opts($("mStatusIn"),STATUSES);
 
 /* picker = select from master + "Other (type it)" */
 function setPicker(sel,inp,list,value){
@@ -690,28 +708,28 @@ function renderSide(){
   $("sideMasters").innerHTML=Object.entries(MASTERS).map(([k,m])=>`<button class="sitem" type="button" data-master="${k}" aria-pressed="${S.tab==="masters"&&S.master===k}"><span class="si">${ICO[k]||""}${esc(m.label)}</span> <b>${S[m.coll].size}</b></button>`).join("");
   const counts={};for(const a of S.assets.values())counts[a.blockId]=(counts[a.blockId]||0)+1;
   $("sideBlocks").innerHTML=[{id:"all",name:"All blocks",n:S.assets.size},...blockList().map(b=>({id:b.id,name:b.name,n:counts[b.id]||0}))]
-    .map(b=>`<button class="sitem" type="button" data-block="${esc(b.id)}" aria-pressed="${S.block===b.id}">${esc(b.name)} <b>${b.n}</b></button>`).join("");
+    .map(b=>`<button class="sitem" type="button" data-block="${esc(b.id)}" aria-pressed="${b.id==="all"?!S.bsel.size:S.bsel.has(b.id)}">${esc(b.name)} <b>${b.n}</b></button>`).join("");
 }
 function render(){refreshOptions();setTimeout(updateBadges,0);renderSide();renderTiles();renderStrip();renderHome();renderAssets();renderMoves();renderBlocks();renderMasters();
   const anySample=[S.blocks,S.assets,S.rooms,S.staff,S.vendors].some(m=>[...m.values()].some(x=>x.sample));
   $("sampleNote").hidden=true;
 }
-function scopedAssets(){return entries(S.assets).filter(a=>S.block==="all"||a.blockId===S.block);}
+function scopedAssets(){return entries(S.assets).filter(a=>inB(a.blockId));}
 function renderTiles(){
   const list=scopedAssets();const c=s=>list.filter(a=>a.status===s).length;
   const week=Date.now()-7*864e5;
-  const mv=S.moves.filter(m=>m.at>=week&&(S.block==="all"||m.toBlockId===S.block||m.fromBlockId===S.block)).length;
+  const mv=S.moves.filter(m=>m.at>=week&&(inB(m.toBlockId)||inB(m.fromBlockId))).length;
   const t=[["Total assets",list.length,null,""],["In use",c("In use"),"var(--ok)","In use"],["In store",c("In store"),"var(--idle)","In store"],["Under repair",c("Under repair"),"var(--warn)","Under repair"],["Missing",c("Missing"),"var(--bad)","Missing"],["Moves, last 7 days",mv,"var(--vio)","#moves"]];
   const tone=["t-total","t-inuse","t-store","t-repair","t-missing","t-moves"];
   $("tiles").innerHTML=t.map(([l,n,col,act],i)=>`<button class="tile ${tone[i]}" type="button" data-act="${esc(act)}"><span class="n">${n}</span><span class="l">${col?`<span class="dot" style="background:${col}"></span>`:""}${esc(l)}</span></button>`).join("");
 }
 function renderStrip(){
   const counts={};for(const a of S.assets.values())counts[a.blockId]=(counts[a.blockId]||0)+1;
-  const items=[{id:"all",name:"All blocks",n:S.assets.size},...blockList().map(b=>({id:b.id,name:b.name,n:counts[b.id]||0}))];
-  const html=items.map(b=>`<option value="${esc(b.id)}">${esc(b.name)} (${b.n})</option>`).join("");
-  for(const id of ["fBlockH","fBlockA","fBlockM"]){$(id).innerHTML=html;$(id).value=S.block;}
+  const items=blockList().map(b=>({v:b.id,t:`${b.name} (${counts[b.id]||0})`}));
+  for(const id of ["fBlockH","fBlockA","fBlockM"]){optsMulti($(id),items);setSel($(id),[...S.bsel]);}
   const scoped=["assets","movements","blocks","home"].includes(S.tab)||(S.tab==="masters"&&["rooms","staff"].includes(S.master));
-  $("subtitle").textContent=S.block==="all"||!scoped?"":`Showing ${bname(S.block)} only.`;$("subtitle").hidden=S.block==="all"||!scoped;
+  const names=[...S.bsel].map(bname);
+  $("subtitle").textContent=!S.bsel.size||!scoped?"":`Showing ${names.length>1?names.slice(0,-1).join(", ")+" and "+names.at(-1):names[0]} only.`;$("subtitle").hidden=!S.bsel.size||!scoped;
 }
 const ICO={
   home:'<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
@@ -730,7 +748,7 @@ const ICO={
 function renderHome(){
   const attn=scopedAssets().filter(a=>a.status==="Under repair"||a.status==="Missing").sort((a,b)=>(b.lastMovedAt||0)-(a.lastMovedAt||0));
   $("attnList").innerHTML=!S.loaded.assets?`<div class="empty">Loading…</div>`:attn.length?attn.slice(0,6).map(a=>`<div class="arow" data-asset="${esc(a.id)}"><div class="grow"><div><span class="tag">${esc(a.tag)}</span> ${esc(a.name)}</div><div class="sub">${esc(bname(a.blockId))}${a.room?` · ${esc(a.room)}`:""} · since ${fmtDay(a.lastMovedAt)}</div></div>${pill(a.status)}</div>`).join(""):`<div class="empty">Nothing under repair or missing.</div>`;
-  const rec=S.moves.filter(m=>S.block==="all"||m.toBlockId===S.block||m.fromBlockId===S.block).slice(0,6);
+  const rec=S.moves.filter(m=>inB(m.toBlockId)||inB(m.fromBlockId)).slice(0,6);
   $("recentList").innerHTML=!S.loaded.movements?`<div class="empty">Loading…</div>`:rec.length?rec.map(m=>`<div class="rrow"><div class="top1"><span><span class="tag">${esc(m.assetTag)}</span> ${esc(m.assetName)}</span><span class="sub" style="white-space:nowrap">${fmtDay(m.at)}</span></div><div class="sub">${esc(bname(m.fromBlockId))}${m.fromRoom?` · ${esc(m.fromRoom)}`:""} → <b style="color:var(--ink)">${esc(bname(m.toBlockId))}${m.toRoom?` · ${esc(m.toRoom)}`:""}</b></div><div class="sub">${esc(m.reason)} · ${esc(m.handledBy||"")}</div></div>`).join(""):`<div class="empty">No movements yet.</div>`;
 }
 function tableHTML(cols,rows,rowAttr){
@@ -738,8 +756,8 @@ function tableHTML(cols,rows,rowAttr){
     rows.map(r=>`<tr${rowAttr?rowAttr(r):""}>${cols.map(c=>`<td data-l="${esc(c.h)}"${c.cls?` class="${c.cls}"`:""}>${c.v(r)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 }
 function renderAssets(){
-  const q=$("q").value.trim().toLowerCase(),cat=$("fCat").value,st=$("fStatus").value;
-  let list=scopedAssets().filter(a=>(!cat||a.category===cat)&&(!st||a.status===st)&&(!q||[a.tag,a.name,a.room,bname(a.blockId)].join(" ").toLowerCase().includes(q)));
+  const q=$("q").value.trim().toLowerCase(),cat=selVals($("fCat")),st=selVals($("fStatus"));
+  let list=scopedAssets().filter(a=>(!cat.length||cat.includes(a.category))&&(!st.length||st.includes(a.status))&&(!q||[a.tag,a.name,a.room,bname(a.blockId)].join(" ").toLowerCase().includes(q)));
   list.sort((a,b)=>ncmp(a.tag,b.tag));
   $("assetCount").textContent=`${list.length} of ${scopedAssets().length}`;
   if(!S.loaded.assets){$("assetList").innerHTML=`<div class="list"><div class="empty">Loading assets…</div></div>`;return}
@@ -764,9 +782,9 @@ function renderAssets(){
   $("assetList").innerHTML=`<div class="desk-only">${tableHTML(cols,list,a=>` class="click" data-asset="${esc(a.id)}"`)}</div><div class="acards">${cards}</div>`;
 }
 function filteredMoves(){
-  const q=$("mq").value.trim().toLowerCase(),r=$("mReason").value,days=+$("mRange").value;
+  const q=$("mq").value.trim().toLowerCase(),r=selVals($("mReason")),days=+$("mRange").value;
   const since=days?Date.now()-days*864e5:0;
-  return S.moves.filter(m=>(S.block==="all"||m.toBlockId===S.block||m.fromBlockId===S.block)&&(!r||m.reason===r)&&m.at>=since&&
+  return S.moves.filter(m=>(inB(m.toBlockId)||inB(m.fromBlockId))&&(!r.length||r.includes(m.reason))&&m.at>=since&&
     (!q||[m.assetTag,m.assetName,m.handledBy,m.vendor,m.notes,m.fromRoom,m.toRoom].join(" ").toLowerCase().includes(q)));
 }
 function renderMoves(){
@@ -796,7 +814,7 @@ function renderMoves(){
   $("moveList").innerHTML=`<div class="desk-only">${tableHTML(cols,list)}</div><div class="acards">${cards}</div>`;
 }
 function renderBlocks(){
-  const bl=blockList().filter(b=>S.block==="all"||b.id===S.block);
+  const bl=blockList().filter(b=>inB(b.id));
   if(!S.loaded.blocks){$("blockCards").innerHTML=`<div class="list"><div class="empty">Loading…</div></div>`;return}
   if(!bl.length){$("blockCards").innerHTML=`<div class="list"><div class="empty">No blocks yet. Use “Add block” to add your hostel blocks.</div></div>`;return}
   const week=Date.now()-7*864e5;
@@ -831,13 +849,13 @@ const MASTERS={
   rooms:{label:"Rooms",one:"room",coll:"rooms",hint:"Rooms and spots in each block.",cols:"1fr 1fr 1fr 1.2fr .7fr .7fr 90px",
     fields:[{k:"blockId",l:"Block",t:"block",req:1},{k:"number",l:"Room no. / spot",req:1,ph:"e.g. 204, Kitchen, Rack 3"},{k:"floor",l:"Floor",t:"select",o:()=>FLOORS,blank:1},{k:"type",l:"Type",t:"select",o:()=>ROOM_TYPES,blank:1},{k:"capacity",l:"Beds",t:"number"}],
     show:[["Block",r=>bname(r.blockId)],["Room / spot",r=>r.number],["Floor",r=>r.floor],["Type",r=>r.type],["Beds",r=>r.capacity??""],["Assets",r=>[...S.assets.values()].filter(a=>a.blockId===r.blockId&&a.room===r.number).length]],
-    list:()=>entries(S.rooms).filter(r=>S.block==="all"||r.blockId===S.block).sort((a,b)=>ncmp(bname(a.blockId),bname(b.blockId))||ncmp(a.number,b.number)),
+    list:()=>entries(S.rooms).filter(r=>inB(r.blockId)).sort((a,b)=>ncmp(bname(a.blockId),bname(b.blockId))||ncmp(a.number,b.number)),
     dup:(b,id)=>entries(S.rooms).find(r=>r.id!==id&&r.blockId===b.blockId&&String(r.number).toLowerCase()===String(b.number).toLowerCase())&&`Room ${b.number} already exists in ${bname(b.blockId)}.`,
     inUse:r=>{const n=[...S.assets.values()].filter(a=>a.blockId===r.blockId&&a.room===r.number).length;return n&&`${n===1?"1 asset is":n+" assets are"} in this room. Move ${n===1?"it":"them"} first.`;}},
   staff:{label:"Users",one:"user",coll:"staff",hint:"People who use the tracker and handle movements. Active users appear in the “Handled by” list.",cols:"1.3fr 1fr 1fr 1fr 1.4fr .6fr 90px",
     fields:[{k:"name",l:"Name",req:1},{k:"role",l:"Role",t:"select",o:()=>ROLES},{k:"blockId",l:"Block in charge",t:"block",blank:"All blocks"},{k:"phone",l:"Phone",ph:"Mobile number"},{k:"email",l:"Email",ph:"name@example.com"},{k:"active",l:"Active",t:"select",o:()=>["Yes","No"]},...(window.HOSTED?[{k:"password",l:"Login password",t:"password",ph:"Set or change; blank keeps it",full:1}]:[])],
     show:[["Name",s=>s.name],["Role",s=>s.role],["Block",s=>s.blockId?bname(s.blockId):"All blocks"],["Phone",s=>s.phone],["Email",s=>s.email||""],["Active",s=>(s.active||"Yes")+(window.HOSTED&&s.hasLogin?" · login":"")]],
-    list:()=>entries(S.staff).filter(u=>S.block==="all"||!u.blockId||u.blockId===S.block).sort((a,b)=>ncmp(a.name,b.name)),
+    list:()=>entries(S.staff).filter(u=>!u.blockId||inB(u.blockId)).sort((a,b)=>ncmp(a.name,b.name)),
     dup:(b,id)=>entries(S.staff).find(s=>s.id!==id&&s.name.toLowerCase()===b.name.toLowerCase())&&`${b.name} is already a user.`},
   itemTypes:{label:"Item types",one:"item type",coll:"itemTypes",hint:"Kinds of items. The tag prefix builds asset tags such as A-FAN-001.",cols:"1.6fr 1fr .8fr .7fr 90px",
     fields:[{k:"name",l:"Item type",req:1,ph:"e.g. Ceiling fan 48in"},{k:"category",l:"Category",t:"select",o:cats},{k:"prefix",l:"Tag prefix",req:1,ph:"e.g. FAN",upper:1,max:5}],
@@ -906,7 +924,7 @@ function openMaster(id){
   const M=MASTERS[S.master];editingMaster=id||null;const x=id?S[M.coll].get(id):{};
   $("masterTitle").textContent=id?`Edit ${M.one}`:`Add ${M.one}`;
   $("masterFields").innerHTML=M.fields.map(f=>{
-    const fid="mf_"+f.k,val=x[f.k]??(f.k==="blockId"&&!id&&S.block!=="all"?S.block:"");
+    const fid="mf_"+f.k,val=x[f.k]??(f.k==="blockId"&&!id?oneB():"");
     let ctl;
     if(f.t==="block")ctl=`<select id="${fid}">${f.blank?`<option value="">${esc(f.blank)}</option>`:""}${blockList().map(b=>`<option value="${esc(b.id)}"${b.id===val?" selected":""}>${esc(b.name)}</option>`).join("")}</select>`;
     else if(f.t==="select"){const o=f.o().map(v=>typeof v==="string"?{v,t:v}:v);ctl=`<select id="${fid}">${f.blank?`<option value="">—</option>`:""}${o.map(v=>`<option value="${esc(v.v)}"${v.v===val?" selected":""}>${esc(v.t)}</option>`).join("")}</select>`;}
@@ -940,7 +958,7 @@ $("btnDelMaster").addEventListener("click",async()=>{if(await delMaster(editingM
 /* bulk rooms */
 opts($("kFloor"),FLOORS);opts($("kType"),ROOM_TYPES);
 function openBulk(){if(!S.blocks.size){toast("Add a block first.");return}
-  fillBlockSelect($("kBlock"),S.block!=="all"?S.block:"");$("kFrom").value="";$("kTo").value="";$("kCap").value="2";$("kType").value="Double";$("kFloor").value="1st";
+  fillBlockSelect($("kBlock"),oneB());$("kFrom").value="";$("kTo").value="";$("kCap").value="2";$("kType").value="Double";$("kFloor").value="1st";
   $("bulkErr").textContent="";$("bulkProgress").textContent="";openDlg("dlgBulk");}
 $("formBulk").addEventListener("submit",async e=>{e.preventDefault();if(!needDb())return;
   const from=parseInt($("kFrom").value,10),to=parseInt($("kTo").value,10),bid=$("kBlock").value;
@@ -1007,7 +1025,7 @@ function openAsset(id){
   opts($("aType"),itemTypeList().map(t=>({v:t.id,t:`${t.name} (${t.prefix})`})),"— None —");$("aType").value=a?.itemTypeId||"";
   opts($("aCat"),cats());
   opts($("aVendor"),vendorList("Supplier").map(v=>({v:v.id,t:v.name})),"— None —");$("aVendor").value=a?.supplierId||"";
-  fillBlockSelect($("aBlock"),a?.blockId||(S.block!=="all"?S.block:""));
+  fillBlockSelect($("aBlock"),a?.blockId||oneB());
   setPicker($("aRoomSel"),$("aRoom"),roomOpts($("aBlock").value),a?.room||"");
   $("aTag").value=a?.tag||"";$("aName").value=a?.name||"";$("aCat").value=a?.category||cats()[0];
   $("aStatus").value=a?.status||"In use";$("aCond").value=a?.condition||"Good";$("aNotes").value=a?.notes||"";
@@ -1127,7 +1145,7 @@ async function delBlock(id,showErr){if(!needDb())return false;
   if(n){showErr(`${n} asset${n===1?" is":"s are"} still in ${bname(id)}. Move ${n===1?"it":"them"} out before deleting this block.`);return false}
   const msg=rooms.length?`${bname(id)} and its ${rooms.length} room${rooms.length===1?"":"s"} will be removed. Past movements are not affected.`:`${bname(id)} will be removed. Past movements are not affected.`;
   if(!await confirmBox("Delete block?",msg,"Delete"))return false;
-  try{for(const r of rooms)await S.db.doc("rooms/"+r.id).delete();await S.db.doc("blocks/"+id).delete();if(S.block===id)S.block="all";toast("Block deleted");return true;}
+  try{for(const r of rooms)await S.db.doc("rooms/"+r.id).delete();await S.db.doc("blocks/"+id).delete();S.bsel.delete(id);toast("Block deleted");return true;}
   catch(err){showErr(errText(err));return false;}
 }
 $("btnDelBlock").addEventListener("click",async()=>{if(await delBlock(editingBlock,t=>$("blockErr").textContent=t))closeDlg("dlgBlock");});
@@ -1160,15 +1178,15 @@ document.addEventListener("click",e=>{
   const t=e.target.closest("[data-delmaster],[data-delblock],[data-go],[data-move],[data-asset],[data-block],[data-viewblock],[data-editblock],[data-master],[data-editmaster],.tile");if(!t)return;
   if(t.dataset.move){e.stopPropagation();openMove(t.dataset.move);return}
   if(t.dataset.asset){openAsset(t.dataset.asset);return}
-  if(t.dataset.block){S.block=t.dataset.block;render();return}
-  if(t.dataset.viewblock){S.block=t.dataset.viewblock;location.hash="#assets";render();return}
+  if(t.dataset.block){S.bsel=t.dataset.block==="all"?new Set():new Set([t.dataset.block]);render();return}
+  if(t.dataset.viewblock){S.bsel=new Set([t.dataset.viewblock]);location.hash="#assets";render();return}
   if(t.dataset.editblock){openBlock(t.dataset.editblock);return}
   if(t.dataset.master){location.hash="#masters-"+t.dataset.master;return}
   if(t.dataset.go){const g=t.dataset.go;if(g==="act:addAsset")openAsset(null);else if(g==="act:move")openMove(null);else if(g==="act:export"){location.hash="#movements";setTimeout(()=>$("btnExport").click(),50);}return}
   if(t.dataset.editmaster){openMaster(t.dataset.editmaster);return}
   if(t.dataset.delmaster){delMaster(t.dataset.delmaster,toast);return}
   if(t.dataset.delblock){delBlock(t.dataset.delblock,toast);return}
-  if(t.classList.contains("tile")){const a=t.dataset.act;if(a==="#moves"){location.hash="#movements";$("mRange").value="7";renderMoves();}else{location.hash="#assets";$("fStatus").value=a;renderAssets();}}
+  if(t.classList.contains("tile")){const a=t.dataset.act;if(a==="#moves"){location.hash="#movements";$("mRange").value="7";renderMoves();}else{location.hash="#assets";setSel($("fStatus"),a?[a]:[]);renderAssets();updateBadges();}}
 });
 $("deskAdd").addEventListener("click",()=>{if(S.tab==="assets")openAsset(null);else if(S.tab==="blocks")openBlock(null);else if(S.tab==="masters")openMaster(null);else if(S.tab==="movements")openMove(null);});
 $("sideAdd").addEventListener("click",()=>openAsset(null));
@@ -1179,7 +1197,7 @@ $("sideBg").addEventListener("click",()=>setDrawer(false));
 document.querySelector(".side").addEventListener("click",e=>{if(isMobile()&&e.target.closest("a,button"))setTimeout(()=>setDrawer(false),0);});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")setDrawer(false);});
 $("abAdd").addEventListener("click",()=>{if(S.tab==="blocks")openBlock(null);else if(S.tab==="masters")openMaster(null);else openAsset(null);});
-for(const id of ["fBlockH","fBlockA","fBlockM"])$(id).addEventListener("change",e=>{S.block=e.target.value;render();});
+for(const id of ["fBlockH","fBlockA","fBlockM"])$(id).addEventListener("change",e=>{S.bsel=new Set(selVals(e.target));render();});
 $("sideMove").addEventListener("click",()=>openMove(null));
 
 $("btnAddBlock").addEventListener("click",()=>openBlock(null));
@@ -1201,12 +1219,12 @@ function errText(e){const c=e&&e.code;
 document.addEventListener("click",e=>{const b=e.target.closest("[data-ftoggle]");if(!b)return;
   const f=$(b.dataset.ftoggle),open=!f.classList.contains("fopen");f.classList.toggle("fopen",open);b.setAttribute("aria-expanded",String(open));});
 document.addEventListener("click",e=>{const b=e.target.closest("[data-fclear]");if(!b)return;
-  if(b.dataset.fclear==="filtA"){$("q").value="";$("fCat").value="";$("fStatus").value="";}
-  else{$("mq").value="";$("mReason").value="";$("mRange").value="30";}
-  S.block="all";render();});
+  if(b.dataset.fclear==="filtA"){$("q").value="";setSel($("fCat"),[]);setSel($("fStatus"),[]);}
+  else{$("mq").value="";setSel($("mReason"),[]);$("mRange").value="30";}
+  S.bsel=new Set();render();});
 function updateBadges(){
-  const nA=(S.block!=="all")+!!$("fCat").value+!!$("fStatus").value;
-  const nM=(S.block!=="all")+!!$("mReason").value+($("mRange").value!=="30");
+  const nA=(S.bsel.size>0)+(selVals($("fCat")).length>0)+(selVals($("fStatus")).length>0);
+  const nM=(S.bsel.size>0)+(selVals($("mReason")).length>0)+($("mRange").value!=="30");
   for(const [id,n,q] of [["filtA",nA,"q"],["filtM",nM,"mq"]]){const bd=$(id).querySelector(".fbadge");bd.textContent=n;bd.hidden=!n;
     $(id).querySelector(".fclr").hidden=!(n||$(q).value.trim());}
 }
@@ -1214,17 +1232,22 @@ function updateBadges(){
 /* ---------- searchable dropdowns ----------
    Every <select> gets a button that opens a searchable list. The native select stays in the
    page (hidden) and remains the source of truth, so all existing code keeps working. */
-const SS=(()=>{
+var SS=(()=>{
   const vd=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,"value");
   const id=Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,"selectedIndex");
   let panel=null,cur=null,items=[],hi=-1;
   function label(sel){const o=sel.options[sel.selectedIndex];return o?o.text:"";}
-  function update(sel){const w=sel._ss;if(!w)return;w.querySelector(".ss-txt").textContent=label(sel)||"\u00a0";w.classList.toggle("ss-dis",sel.disabled);}
+  function update(sel){const w=sel._ss;if(!w)return;
+    if(sel.multiple){const on=[...sel.options].filter(o=>o.selected);
+      w.querySelector(".ss-txt").textContent=!on.length?(sel.dataset.all||"All"):on.length===1?on[0].text:(sel.dataset.label||"Selected");
+      const c=w.querySelector(".ss-cnt");c.textContent=on.length;c.hidden=on.length<2;w.classList.toggle("ss-on",on.length>0);}
+    else w.querySelector(".ss-txt").textContent=label(sel)||"\u00a0";
+    w.classList.toggle("ss-dis",sel.disabled);}
   function enhance(sel){
-    if(sel._ss||sel.multiple||sel.classList.contains("vh"))return;
+    if(sel._ss||sel.classList.contains("vh"))return;
     const w=document.createElement("button");w.type="button";w.className="ss"+(sel.classList.contains("mob-only")?" mob-only":"");w.setAttribute("aria-haspopup","listbox");
     if(sel.getAttribute("aria-label"))w.setAttribute("aria-label",sel.getAttribute("aria-label"));
-    w.innerHTML='<span class="ss-txt"></span><svg viewBox="0 0 24 24" class="ss-car"><path d="M6 9l6 6 6-6"/></svg>';
+    w.innerHTML='<span class="ss-txt"></span><span class="ss-cnt" hidden></span><svg viewBox="0 0 24 24" class="ss-car"><path d="M6 9l6 6 6-6"/></svg>';
     sel.after(w);sel.classList.add("ss-native");sel._ss=w;w._sel=sel;
     if(sel.id){const lb=document.querySelector(`label[for="${sel.id}"]`);if(lb)lb.addEventListener("click",e=>{e.preventDefault();w.focus();});}
     Object.defineProperty(sel,"value",{configurable:true,get(){return vd.get.call(this);},set(v){vd.set.call(this,v);update(this);}});
@@ -1237,7 +1260,9 @@ const SS=(()=>{
   }
   function build(){
     panel=document.createElement("div");panel.className="ss-panel";panel.hidden=true;
-    panel.innerHTML='<input class="ss-q" type="search" placeholder="Search…" autocomplete="off" aria-label="Search options"><div class="ss-list" role="listbox"></div>';
+    panel.innerHTML='<input class="ss-q" type="search" placeholder="Search…" autocomplete="off" aria-label="Search options"><div class="ss-list" role="listbox"></div><div class="ss-foot"><button type="button" class="ss-all">Select all</button><button type="button" class="ss-clr">Clear</button></div>';
+    panel.querySelector(".ss-all").addEventListener("mousedown",e=>{e.preventDefault();multiSet(true);});
+    panel.querySelector(".ss-clr").addEventListener("mousedown",e=>{e.preventDefault();multiSet(false);});
     document.body.appendChild(panel);
     const q=panel.querySelector(".ss-q");
     q.addEventListener("input",()=>fill(q.value));
@@ -1257,9 +1282,13 @@ const SS=(()=>{
     const list=panel.querySelector(".ss-list");q=(q||"").trim().toLowerCase();
     const opts=[...cur.options].filter(o=>!o.hidden&&(!q||o.text.toLowerCase().includes(q)));
     list.innerHTML="";items=[];
-    for(const o of opts){const d=document.createElement("div");d.className="ss-opt"+(o.value===vd.get.call(cur)&&o.selected?" sel":"");d.setAttribute("role","option");d.dataset.v=o.value;d.textContent=o.text||"\u00a0";list.appendChild(d);items.push(d);}
+    const multi=cur.multiple;panel.classList.toggle("ss-multi",multi);
+    for(const o of opts){const d=document.createElement("div");d.setAttribute("role","option");d.dataset.v=o.value;
+      if(multi){d.className="ss-opt ss-chk"+(o.selected?" on":"");d.setAttribute("aria-selected",String(o.selected));d.innerHTML='<span class="ss-box"><svg viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></svg></span><span></span>';d.lastChild.textContent=o.text;}
+      else{d.className="ss-opt"+(o.value===vd.get.call(cur)&&o.selected?" sel":"");d.textContent=o.text||"\u00a0";}
+      list.appendChild(d);items.push(d);}
     if(!opts.length){const d=document.createElement("div");d.className="ss-empty";d.textContent="No matches";list.appendChild(d);}
-    hi=Math.max(0,items.findIndex(x=>x.classList.contains("sel")));if(q)hi=0;mark();
+    if(!multi){hi=Math.max(0,items.findIndex(x=>x.classList.contains("sel")));if(q)hi=0;}else hi=Math.min(Math.max(hi,0),items.length-1);mark();
   }
   function mark(){items.forEach((x,i)=>x.classList.toggle("hi",i===hi));const x=items[hi];if(x)x.scrollIntoView({block:"nearest"});}
   function move(d){if(!items.length)return;hi=(hi+d+items.length)%items.length;mark();}
@@ -1275,12 +1304,17 @@ const SS=(()=>{
     if(sel.disabled)return;if(!panel)build();
     if(cur===sel){close(true);return;}
     cur=sel;panel.hidden=false;place();
-    const q=panel.querySelector(".ss-q");q.value="";fill("");
+    const q=panel.querySelector(".ss-q");q.value="";hi=0;fill("");
     cur._ss.setAttribute("aria-expanded","true");
     setTimeout(()=>q.focus(),0);
   }
   function close(refocus){if(!cur)return;const w=cur._ss;w.setAttribute("aria-expanded","false");panel.hidden=true;cur=null;if(refocus)w.focus();}
-  function choose(v){const sel=cur;close(true);if(vd.get.call(sel)!==v){sel.value=v;sel.dispatchEvent(new Event("input",{bubbles:true}));sel.dispatchEvent(new Event("change",{bubbles:true}));}}
+  function fire(sel){sel.dispatchEvent(new Event("input",{bubbles:true}));sel.dispatchEvent(new Event("change",{bubbles:true}));}
+  function multiSet(on){if(!cur)return;const q=panel.querySelector(".ss-q").value.trim().toLowerCase();
+    for(const o of cur.options)if(!o.hidden&&(!q||o.text.toLowerCase().includes(q)))o.selected=on;update(cur);fire(cur);fill(panel.querySelector(".ss-q").value);}
+  function choose(v){if(cur&&cur.multiple){const o=[...cur.options].find(x=>x.value===v);if(o){o.selected=!o.selected;update(cur);fire(cur);
+      const keepHi=items.findIndex(x=>x.dataset.v===v);fill(panel.querySelector(".ss-q").value);hi=keepHi;mark();}return;}
+    const sel=cur;close(true);if(vd.get.call(sel)!==v){sel.value=v;sel.dispatchEvent(new Event("input",{bubbles:true}));sel.dispatchEvent(new Event("change",{bubbles:true}));}}
   function scan(root){(root.querySelectorAll?root.querySelectorAll("select"):[]).forEach(enhance);if(root.tagName==="SELECT")enhance(root);}
   scan(document);
   new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1)scan(n);}).observe(document.body,{childList:true,subtree:true});
