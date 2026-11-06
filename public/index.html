@@ -215,6 +215,10 @@ select.ss-native{display:none!important}
 .acard.st-repair{border-left-color:var(--warn)}
 .acard.st-missing,.acard.st-disposed{border-left-color:var(--bad)}
 .ac-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ac-top .ac-name{margin-top:0}
+.acard.st-accent{border-left-color:var(--accent)}
+a.ac-name{color:var(--accent);text-decoration:none}
+.ac-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
 .ac-name{font-weight:600;font-size:16px;line-height:1.3;margin-top:2px}
 .ac-name .tag{font-weight:500}
 .ac-loc,.ac-route{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:14px;flex-wrap:wrap}
@@ -301,6 +305,8 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
   .filters{display:flex;flex-direction:column;gap:8px;align-items:stretch}
   .srow{flex:none}
   .fbtn{display:grid}
+  .filters > input[type=search]{flex:none}
+  #view-masters .filters .actions{margin-left:0!important}
   .desk-only{display:none}
   .acards{display:flex;flex-direction:column;gap:10px}
   .ss.mob-only{display:flex}
@@ -792,7 +798,14 @@ function renderBlocks(){
     {h:"In · 7 days",cls:"r",v:r=>n(r.inW)},
     {h:"Out · 7 days",cls:"r",v:r=>n(r.outW)},
     {h:"",cls:"t-act",v:r=>S.canWrite?`<button class="btn small" type="button" data-editblock="${esc(r.b.id)}">Edit</button>`:""}];
-  $("blockCards").innerHTML=tableHTML(cols,rows);
+  const cards=rows.map(r=>{
+    const chips=[["In use","s-inuse"],["In store","s-store"],["Under repair","s-repair"],["Missing","s-missing"]].map(([st,c])=>[st,c,r.st(st)]).filter(x=>x[2]).map(([st,c,n])=>`<span class="pill ${c}">${esc(st)} ${n}</span>`).join("");
+    return `<div class="acard st-accent">
+      <div class="ac-top"><a href="#assets" class="ac-name blink" data-viewblock="${esc(r.b.id)}">${esc(r.b.name)}</a><span class="sub">${r.total} asset${r.total===1?"":"s"}</span></div>
+      <div class="ac-chips">${chips||`<span class="sub">No assets here yet</span>`}</div>
+      <div class="ac-foot"><span class="sub">${r.nr} room${r.nr===1?"":"s"}<br>This week: ${r.inW} in · ${r.outW} out</span>${S.canWrite?`<button class="btn small" type="button" data-editblock="${esc(r.b.id)}">Edit</button>`:""}</div>
+    </div>`;}).join("");
+  $("blockCards").innerHTML=`<div class="desk-only">${tableHTML(cols,rows)}</div><div class="acards">${cards}</div>`;
 }
 
 /* ---------- masters ---------- */
@@ -832,6 +845,19 @@ const MASTERS={
     list:()=>entries(S.reasons).sort((a,b)=>(a.order??99)-(b.order??99)||ncmp(a.name,b.name)),
     dup:(b,id)=>entries(S.reasons).find(r=>r.id!==id&&r.name.toLowerCase()===b.name.toLowerCase())&&`${b.name} already exists.`}
 };
+const cnt=(n,w)=>`${n} ${w}${n===1?"":"s"}`;
+const assetsWhere=f=>[...S.assets.values()].filter(f).length;
+const MCARD={
+  rooms:r=>({title:r.number,sub:esc([bname(r.blockId),r.floor&&r.floor+" floor",r.type].filter(Boolean).join(" · ")),
+    meta:esc([r.capacity!=null&&r.capacity!==""?cnt(+r.capacity,"bed"):"",cnt(assetsWhere(a=>a.blockId===r.blockId&&a.room===r.number),"asset")].filter(Boolean).join(" · "))}),
+  staff:u=>({title:u.name,stripe:u.active==="No"?"st-store":"st-accent",badge:`<span class="pill ${u.active==="No"?"s-store":"s-inuse"}">${u.active==="No"?"Inactive":"Active"}</span>`,
+    sub:esc([u.role,u.blockId?bname(u.blockId):"All blocks"].filter(Boolean).join(" · ")),meta:esc([u.phone,u.email].filter(Boolean).join(" · ")||"No contact details")}),
+  itemTypes:t=>({title:t.name,badge:`<span class="tag">${esc(t.prefix)}</span>`,sub:esc(t.category||""),meta:cnt(assetsWhere(a=>a.itemTypeId===t.id),"asset")}),
+  vendors:v=>({title:v.name,sub:esc(v.kind||""),meta:esc([v.contact,v.phone].filter(Boolean).join(" · ")||"No contact details")}),
+  categories:c=>({title:c.name,meta:cnt(assetsWhere(a=>a.category===c.name),"asset")}),
+  reasons:r=>({title:r.name,sub:"Sets status: "+(r.statusAfter?pill(r.statusAfter):"choose each time"),
+    meta:"Destination: "+esc((DEST_OPTS.find(d=>d[0]===(r.dest||""))||DEST_OPTS[0])[1])})
+};
 function renderMasters(){
   const mobile=isMobile();
   const showMenu=mobile&&!S.masterOpen;
@@ -849,7 +875,13 @@ function renderMasters(){
   const cols=[{h:"#",cls:"num",v:x=>""},
     ...M.show.map(([l,f],i)=>({h:l,cls:i===0?"t-main":"",v:x=>{const v=f(x);return typeof v==="number"?`<span class="rnum">${v}</span>`:esc(v===""||v==null?"—":v);}})),
     {h:"",cls:"t-act",v:x=>S.canWrite?`<button class="btn small" type="button" data-editmaster="${esc(x.id)}">Edit</button>`:""}];
-  $("masterList").innerHTML=tableHTML(cols,list,x=>x.active==="No"?` class="inactive"`:"");
+  const cardOf=MCARD[S.master];
+  const cards=list.map(x=>{const c=cardOf(x);return `<div class="acard ${c.stripe||"st-accent"}">
+      <div class="ac-top"><span class="ac-name">${esc(c.title)}</span>${c.badge||""}</div>
+      ${c.sub?`<div class="ac-loc">${c.sub}</div>`:""}
+      <div class="ac-foot"><span class="sub">${c.meta||"&nbsp;"}</span>${S.canWrite?`<button class="btn small" type="button" data-editmaster="${esc(x.id)}">Edit</button>`:""}</div>
+    </div>`;}).join("");
+  $("masterList").innerHTML=`<div class="desk-only">${tableHTML(cols,list,x=>x.active==="No"?` class="inactive"`:"")}</div><div class="acards">${cards}</div>`;
 }
 let editingMaster=null;
 function openMaster(id){
