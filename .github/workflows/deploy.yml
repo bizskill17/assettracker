@@ -43,12 +43,42 @@ jobs:
           open("public/api/config.php", "w").write("\n".join(lines) + "\n")
           PY
 
-      - name: Upload to Hostinger via FTP
+      - name: Upload to Hostinger via FTPS
+        id: upload1
         if: env.FTP_SERVER != ''
+        continue-on-error: true
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          security: loose
           local-dir: ./public/
           server-dir: ${{ vars.FTP_SERVER_DIR || 'public_html/' }}
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/config.sample.php
+
+      - name: Wait before retry
+        if: env.FTP_SERVER != '' && steps.upload1.outcome == 'failure'
+        run: sleep 20
+
+      - name: Retry upload (FTPS)
+        if: env.FTP_SERVER != '' && steps.upload1.outcome == 'failure'
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
+          security: loose
+          local-dir: ./public/
+          server-dir: ${{ vars.FTP_SERVER_DIR || 'public_html/' }}
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/config.sample.php
