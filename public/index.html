@@ -275,6 +275,12 @@ a.ac-name{color:var(--accent);text-decoration:none}
 .cm-l2 b{font-weight:700}
 .cm-l2{font-size:12.5px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .acard.cmp .pill{flex:none}
+.mv-ft{display:grid;grid-template-columns:auto 1fr;gap:1px 10px;font-size:13px;margin-top:2px}
+.mv-k{color:var(--muted);font-size:12px;align-self:center}
+.mv-ft b{font-weight:700}
+.mv-meta{font-size:12.5px;margin-top:2px}
+.mv-meta b{font-weight:700}
+.mv-note{font-style:italic;margin-top:1px}
 .cm-side{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:none}
 .cm-ib{width:34px;height:34px;flex:none;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--accent);display:grid;place-items:center;cursor:pointer}
 .cm-ib:hover{border-color:var(--accent)}
@@ -907,10 +913,13 @@ function renderMoves(){
     {h:"Notes",cls:"t-notes",v:m=>esc(m.notes||"")}];
   const pg=paginate("moves",list,JSON.stringify([$("mq").value,selVals($("mReason")),selVals($("fRoomM")),$("mRange").value,[...S.bsel]]));
   const cards=pg.items.map(m=>{const from=bname(m.fromBlockId)+(m.fromRoom?" · "+m.fromRoom:""),to=bname(m.toBlockId)+(m.toRoom?" · "+m.toRoom:"");
-    const l2=[fmtWhen(m.at),`${from} → ${to}`,m.reason,m.handledBy].filter(Boolean).join(" · ");
-    const l2h=[esc(fmtWhen(m.at)),`${esc(from)} → <b>${esc(to)}</b>`,esc(m.reason||""),m.handledBy?`<b>${esc(m.handledBy)}</b>`:""].filter(Boolean).join(" · ");
-    return `<div class="acard cmp st-${(STATUS_CLASS[m.statusAfter]||"s-store").slice(2)}">
-    <div class="cm-main"><div class="cm-l1"><span class="tag">${esc(m.assetTag)}</span><span class="cm-nm">(${esc(m.assetName)})</span>${m.statusAfter?pill(m.statusAfter):""}</div><div class="cm-l2" title="${esc(l2+(m.notes?" · "+m.notes:""))}">${l2h}</div></div>
+    const meta=[esc(m.reason||""),m.handledBy?`<b>${esc(m.handledBy)}</b>`:"",m.vendor?esc(m.vendor):"",esc(fmtWhen(m.at))].filter(Boolean).join(" · ");
+    return `<div class="acard cmp mv st-${(STATUS_CLASS[m.statusAfter]||"s-store").slice(2)}">
+    <div class="cm-main">
+      <div class="cm-l1"><span class="tag">${esc(m.assetTag)}</span><span class="cm-nm">(${esc(m.assetName)})</span>${m.statusAfter?pill(m.statusAfter):""}</div>
+      <div class="mv-ft"><span class="mv-k">From</span><span>${esc(from)}</span><span class="mv-k">To</span><b>${esc(to)}</b></div>
+      <div class="mv-meta">${meta}${m.notes?`<div class="mv-note">${esc(m.notes)}</div>`:""}</div>
+    </div>
   </div>`;}).join("");
   $("moveList").innerHTML=`<span data-pgtop="moves"></span><div class="desk-only">${tableHTML(cols,pg.items,null,pg.start)}</div><div class="acards">${cards}</div>${pagerHTML(pg)}`;
 }
