@@ -39,7 +39,7 @@ In this repo, go to **Settings → Secrets and variables → Actions → New rep
 | `DB_USER` | database user from step 1 |
 | `DB_PASS` | database password from step 1 |
 
-The workflow uploads with `lftp` in passive mode. It tries plain FTP first, then FTP over TLS.
+The workflow uploads with `lftp` in passive mode. It tries plain FTP first, then FTP over TLS. It works out the right folder by itself: it uploads a small probe file, checks which folder `https://assettracker.bizskilledu.com` serves, and deploys there. For a different domain, set the repository **variable** `SITE_URL`. To skip the probe, set the variable `FTP_SERVER_DIR` to `./` or `public_html/`.
 
 ### 4. Deploy
 - Go to **Actions → Deploy to Hostinger → Run workflow**, or push any change to `main`.
