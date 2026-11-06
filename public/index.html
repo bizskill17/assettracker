@@ -237,14 +237,14 @@ select.ss-native{display:none!important}
 .pickbtn:hover{color:var(--accent);background:var(--accent-soft)}
 .pickbtn svg{width:18px;height:18px}
 .acards{display:none}
-.acard{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--idle);border-radius:4px 12px 12px 4px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.acard{--sc:var(--idle);background:var(--surface);border:1.5px solid var(--sc);border-left:4px solid var(--sc);border-radius:4px 12px 12px 4px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
 .acard[data-asset]{cursor:pointer}
-.acard.st-inuse{border-left-color:var(--ok)}
-.acard.st-repair{border-left-color:var(--warn)}
-.acard.st-missing,.acard.st-disposed{border-left-color:var(--bad)}
+.acard.st-inuse{--sc:var(--ok)}
+.acard.st-repair{--sc:var(--warn)}
+.acard.st-missing,.acard.st-disposed{--sc:var(--bad)}
 .ac-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .ac-top .ac-name{margin-top:0}
-.acard.st-accent{border-left-color:var(--accent)}
+.acard.st-accent{--sc:var(--accent)}
 a.ac-name{color:var(--accent);text-decoration:none}
 .ac-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
 .ac-name{font-weight:600;font-size:16px;line-height:1.3;margin-top:2px}
