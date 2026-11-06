@@ -1327,6 +1327,13 @@ function errText(e){const c=e&&e.code;
   if(c==="resource_exhausted")return"Too many changes at once. Wait a moment and try again.";
   return"Couldn't save right now. Check your connection and try again.";}
 
+/* ---------- Enter never submits a form; only the Save button does ---------- */
+document.addEventListener("keydown",e=>{
+  if(e.key!=="Enter"||e.isComposing)return;
+  const t=e.target;
+  if(t.matches&&t.matches("form:not(#authForm) input")){e.preventDefault();}
+},true);
+
 /* ---------- filter toggle (phones/tablets) ---------- */
 document.addEventListener("click",e=>{const b=e.target.closest("[data-ftoggle]");if(!b)return;
   const f=$(b.dataset.ftoggle),open=!f.classList.contains("fopen");f.classList.toggle("fopen",open);b.setAttribute("aria-expanded",String(open));});
