@@ -335,6 +335,9 @@ input[readonly],input:disabled,textarea:disabled,select:disabled,.ss.ss-dis{back
 .rrow:first-child{border-top:0}
 .rrow .top1{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
 .appbar,.bnav,.mob-only,.pageadd{display:none}
+.homehead{display:flex;justify-content:flex-end;margin-bottom:12px}
+.homehead .hh-title{display:none}
+.homehead select,.homehead .ss{min-width:220px}
 .mmenu .mitem{display:flex;align-items:center;gap:12px;padding:14px;border-top:1px solid var(--line);text-decoration:none;color:var(--ink)}
 .mmenu .mitem:first-child{border-top:0}
 .mmenu .mitem .grow{flex:1}
@@ -360,7 +363,9 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
   .iconbtn:hover{background:var(--paper)}
   .iconbtn.ghost{visibility:hidden}
   .homehead{display:flex;align-items:center;justify-content:space-between;gap:10px}
-  .hh-title{font-family:var(--display);font-size:22px;font-weight:700}
+  .homehead{margin-bottom:0}
+  .homehead .hh-title{display:block;font-family:var(--display);font-size:22px;font-weight:700}
+  .homehead select,.homehead .ss{min-width:0}
   .homehead select,.homehead .ss{max-width:55%}
   .tiles{grid-template-columns:repeat(3,1fr);gap:8px}
   .tile{padding:10px;border-radius:12px}
@@ -427,8 +432,6 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
   <div id="sideNav"></div>
   <div class="sgroup">Masters</div>
   <div id="sideMasters"></div>
-  <div class="sgroup">Filter by block</div>
-  <div id="sideBlocks"></div>
 </aside>
 <div class="sidebg" id="sideBg" hidden></div>
 <div class="wrap">
@@ -450,7 +453,7 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
   <div class="notice" id="statusNote" hidden></div>
 
   <section id="view-home">
-    <div class="homehead mob-only">
+    <div class="homehead">
       <div class="hh-title">Hostel assets</div>
       <select id="fBlockH" multiple data-label="Blocks" data-all="All blocks" aria-label="Block"></select>
     </div>
@@ -475,7 +478,7 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
     <div class="filters" id="filtA">
       <div class="srow"><input type="search" id="q" placeholder="Search tag, item or room…" aria-label="Search assets"><button class="fbtn" type="button" data-ftoggle="filtA" aria-expanded="false" aria-label="Show filters"><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg><span class="fbadge" hidden></span></button><button class="fclr" type="button" data-fclear="filtA" aria-label="Clear search and filters" title="Clear filters" hidden><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/><path d="M16 16l5 5M21 16l-5 5"/></svg></button></div>
       <div class="fpanel">
-        <select id="fBlockA" class="mob-only" multiple data-label="Blocks" data-all="All blocks" aria-label="Block"></select>
+        <select id="fBlockA" multiple data-label="Blocks" data-all="All blocks" aria-label="Block"></select>
         <select id="fRoomA" multiple data-label="Rooms" data-all="All rooms" aria-label="Room"></select>
         <select id="fCat" multiple data-label="Categories" data-all="All categories" aria-label="Category"></select>
         <select id="fStatus" multiple data-label="Statuses" data-all="All statuses" aria-label="Status"></select>
@@ -489,7 +492,7 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
     <div class="filters" id="filtM">
       <div class="srow"><input type="search" id="mq" placeholder="Search tag, item, person, vendor…" aria-label="Search movements"><button class="fbtn" type="button" data-ftoggle="filtM" aria-expanded="false" aria-label="Show filters"><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg><span class="fbadge" hidden></span></button><button class="fclr" type="button" data-fclear="filtM" aria-label="Clear search and filters" title="Clear filters" hidden><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/><path d="M16 16l5 5M21 16l-5 5"/></svg></button></div>
       <div class="fpanel">
-      <select id="fBlockM" class="mob-only" multiple data-label="Blocks" data-all="All blocks" aria-label="Block"></select>
+      <select id="fBlockM" multiple data-label="Blocks" data-all="All blocks" aria-label="Block"></select>
       <select id="fRoomM" multiple data-label="Rooms" data-all="All rooms" aria-label="Room"></select>
       <select id="mReason" multiple data-label="Reasons" data-all="All reasons" aria-label="Reason"></select>
       <select id="mRange" aria-label="Period">
@@ -507,6 +510,7 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
 
   <section id="view-blocks" hidden>
     <div class="filters" style="margin-bottom:10px">
+      <select id="fBlockB" multiple data-label="Blocks" data-all="All blocks" aria-label="Block"></select>
       <button class="btn small pageadd" id="btnAddBlock" type="button" style="margin-left:auto">+ Add block</button>
     </div>
     <div id="blockCards"></div>
@@ -800,9 +804,6 @@ function renderSide(){
   $("sideNav").innerHTML=tabs.map(([k,l,n,ic])=>`<a class="sitem" href="#${k}" data-tab="${k}" aria-current="${S.tab===k?"page":"false"}"><span class="si">${ic}${esc(l)}</span> <b>${n}</b></a>`).join("")+
     `<button class="sitem" type="button" data-go="act:export"><span class="si">${ICO.export}Export movement log</span></button>`;
   $("sideMasters").innerHTML=Object.entries(MASTERS).map(([k,m])=>`<button class="sitem" type="button" data-master="${k}" aria-pressed="${S.tab==="masters"&&S.master===k}"><span class="si">${ICO[k]||""}${esc(m.label)}</span> <b>${S[m.coll].size}</b></button>`).join("");
-  const counts={};for(const a of S.assets.values())counts[a.blockId]=(counts[a.blockId]||0)+1;
-  $("sideBlocks").innerHTML=[{id:"all",name:"All blocks",n:S.assets.size},...blockList().map(b=>({id:b.id,name:b.name,n:counts[b.id]||0}))]
-    .map(b=>`<button class="sitem" type="button" data-block="${esc(b.id)}" aria-pressed="${b.id==="all"?!S.bsel.size:S.bsel.has(b.id)}">${esc(b.name)} <b>${b.n}</b></button>`).join("");
 }
 function render(){setTimeout(updateBadges,0);renderSide();renderTiles();renderStrip();refreshOptions();renderHome();renderAssets();renderMoves();renderBlocks();renderMasters();
   const anySample=[S.blocks,S.assets,S.rooms,S.staff,S.vendors].some(m=>[...m.values()].some(x=>x.sample));
@@ -820,7 +821,7 @@ function renderTiles(){
 function renderStrip(){
   const counts={};for(const a of S.assets.values())counts[a.blockId]=(counts[a.blockId]||0)+1;
   const items=blockList().map(b=>({v:b.id,t:`${b.name} (${counts[b.id]||0})`}));
-  optsMulti($("fBlockH"),items);setSel($("fBlockH"),[...S.bsel]);
+  for(const id of ["fBlockH","fBlockB"]){optsMulti($(id),items);setSel($(id),[...S.bsel]);}
   for(const id of ["fBlockA","fBlockM"])setSel($(id),[...S.bsel]);
   const scoped=["assets","movements","blocks","home"].includes(S.tab)||(S.tab==="masters"&&["rooms","staff"].includes(S.master));
   const names=[...S.bsel].map(bname);
@@ -1322,7 +1323,7 @@ $("sideBg").addEventListener("click",()=>setDrawer(false));
 document.querySelector(".side").addEventListener("click",e=>{if(isMobile()&&e.target.closest("a,button"))setTimeout(()=>setDrawer(false),0);});
 document.addEventListener("keydown",e=>{if(e.key==="Escape")setDrawer(false);});
 $("abAdd").addEventListener("click",()=>{if(S.tab==="blocks")openBlock(null);else if(S.tab==="masters")openMaster(null);else openAsset(null);});
-for(const id of ["fBlockH","fBlockA","fBlockM"])$(id).addEventListener("change",e=>{S.bsel=new Set(selVals(e.target));render();});
+for(const id of ["fBlockH","fBlockA","fBlockM","fBlockB"])$(id).addEventListener("change",e=>{S.bsel=new Set(selVals(e.target));render();});
 $("sideMove").addEventListener("click",()=>openMove(null));
 
 $("btnAddBlock").addEventListener("click",()=>openBlock(null));
