@@ -438,6 +438,7 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
       <div class="srow"><input type="search" id="q" placeholder="Search tag, item or room…" aria-label="Search assets"><button class="fbtn" type="button" data-ftoggle="filtA" aria-expanded="false" aria-label="Show filters"><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg><span class="fbadge" hidden></span></button><button class="fclr" type="button" data-fclear="filtA" aria-label="Clear search and filters" title="Clear filters" hidden><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/><path d="M16 16l5 5M21 16l-5 5"/></svg></button></div>
       <div class="fpanel">
         <select id="fBlockA" class="mob-only" multiple data-label="Blocks" data-all="All blocks" aria-label="Block"></select>
+        <select id="fRoomA" multiple data-label="Rooms" data-all="All rooms" aria-label="Room"></select>
         <select id="fCat" multiple data-label="Categories" data-all="All categories" aria-label="Category"></select>
         <select id="fStatus" multiple data-label="Statuses" data-all="All statuses" aria-label="Status"></select>
       </div>
@@ -451,6 +452,7 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
       <div class="srow"><input type="search" id="mq" placeholder="Search tag, item, person, vendor…" aria-label="Search movements"><button class="fbtn" type="button" data-ftoggle="filtM" aria-expanded="false" aria-label="Show filters"><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg><span class="fbadge" hidden></span></button><button class="fclr" type="button" data-fclear="filtM" aria-label="Clear search and filters" title="Clear filters" hidden><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/><path d="M16 16l5 5M21 16l-5 5"/></svg></button></div>
       <div class="fpanel">
       <select id="fBlockM" class="mob-only" multiple data-label="Blocks" data-all="All blocks" aria-label="Block"></select>
+      <select id="fRoomM" multiple data-label="Rooms" data-all="All rooms" aria-label="Room"></select>
       <select id="mReason" multiple data-label="Reasons" data-all="All reasons" aria-label="Reason"></select>
       <select id="mRange" aria-label="Period">
         <option value="7">Last 7 days</option>
@@ -675,7 +677,13 @@ function setSel(sel,vals){const set=new Set(vals);for(const o of sel.options)o.s
 function optsMulti(sel,list){const keep=new Set(selVals(sel));sel.innerHTML=list.map(v=>{const o=typeof v==="string"?{v,t:v}:v;return `<option value="${esc(o.v)}"${keep.has(o.v)?" selected":""}>${esc(o.t)}</option>`;}).join("");if(SS)SS.update(sel);}
 const inB=id=>!S.bsel.size||S.bsel.has(id);
 const oneB=()=>S.bsel.size===1?[...S.bsel][0]:"";
-function refreshOptions(){optsMulti($("fCat"),cats());optsMulti($("mReason"),reasons().map(r=>r.name));}
+const roomKey=(b,r)=>b+"::"+r;
+function roomOptions(){const seen=new Map();
+  for(const r of S.rooms.values())if(inB(r.blockId)&&r.number)seen.set(roomKey(r.blockId,r.number),[r.blockId,r.number]);
+  for(const a of S.assets.values())if(inB(a.blockId)&&a.room)seen.set(roomKey(a.blockId,a.room),[a.blockId,a.room]);
+  const one=S.bsel.size===1;
+  return [...seen.entries()].sort((x,y)=>ncmp(bname(x[1][0]),bname(y[1][0]))||ncmp(x[1][1],y[1][1])).map(([k,[b,r]])=>({v:k,t:one?r:`${r} · ${bname(b)}`}));}
+function refreshOptions(){optsMulti($("fCat"),cats());optsMulti($("mReason"),reasons().map(r=>r.name));const ro=roomOptions();optsMulti($("fRoomA"),ro);optsMulti($("fRoomM"),ro);}
 optsMulti($("fStatus"),STATUSES);opts($("aStatus"),STATUSES);opts($("mStatusIn"),STATUSES);
 
 /* picker = select from master + "Other (type it)" */
@@ -758,8 +766,8 @@ function tableHTML(cols,rows,rowAttr){
     rows.map(r=>`<tr${rowAttr?rowAttr(r):""}>${cols.map(c=>`<td data-l="${esc(c.h)}"${c.cls?` class="${c.cls}"`:""}>${c.v(r)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
 }
 function renderAssets(){
-  const q=$("q").value.trim().toLowerCase(),cat=selVals($("fCat")),st=selVals($("fStatus"));
-  let list=scopedAssets().filter(a=>(!cat.length||cat.includes(a.category))&&(!st.length||st.includes(a.status))&&(!q||[a.tag,a.name,a.room,bname(a.blockId)].join(" ").toLowerCase().includes(q)));
+  const q=$("q").value.trim().toLowerCase(),cat=selVals($("fCat")),st=selVals($("fStatus")),rm=selVals($("fRoomA"));
+  let list=scopedAssets().filter(a=>(!rm.length||rm.includes(roomKey(a.blockId,a.room)))&&(!cat.length||cat.includes(a.category))&&(!st.length||st.includes(a.status))&&(!q||[a.tag,a.name,a.room,bname(a.blockId)].join(" ").toLowerCase().includes(q)));
   list.sort((a,b)=>ncmp(a.tag,b.tag));
   $("assetCount").textContent=`${list.length} of ${scopedAssets().length}`;
   if(!S.loaded.assets){$("assetList").innerHTML=`<div class="list"><div class="empty">Loading assets…</div></div>`;return}
@@ -784,9 +792,9 @@ function renderAssets(){
   $("assetList").innerHTML=`<div class="desk-only">${tableHTML(cols,list,a=>` class="click" data-asset="${esc(a.id)}"`)}</div><div class="acards">${cards}</div>`;
 }
 function filteredMoves(){
-  const q=$("mq").value.trim().toLowerCase(),r=selVals($("mReason")),days=+$("mRange").value;
+  const q=$("mq").value.trim().toLowerCase(),r=selVals($("mReason")),days=+$("mRange").value,rm=selVals($("fRoomM"));
   const since=days?Date.now()-days*864e5:0;
-  return S.moves.filter(m=>(inB(m.toBlockId)||inB(m.fromBlockId))&&(!r.length||r.includes(m.reason))&&m.at>=since&&
+  return S.moves.filter(m=>(inB(m.toBlockId)||inB(m.fromBlockId))&&(!r.length||r.includes(m.reason))&&(!rm.length||rm.includes(roomKey(m.fromBlockId,m.fromRoom))||rm.includes(roomKey(m.toBlockId,m.toRoom)))&&m.at>=since&&
     (!q||[m.assetTag,m.assetName,m.handledBy,m.vendor,m.notes,m.fromRoom,m.toRoom].join(" ").toLowerCase().includes(q)));
 }
 function renderMoves(){
@@ -1205,8 +1213,8 @@ $("sideMove").addEventListener("click",()=>openMove(null));
 $("btnAddBlock").addEventListener("click",()=>openBlock(null));
 $("btnAddMaster").addEventListener("click",()=>openMaster(null));
 $("btnBulkRooms").addEventListener("click",openBulk);
-["q","fCat","fStatus"].forEach(id=>$(id).addEventListener("input",()=>{renderAssets();updateBadges();}));
-["mq","mReason","mRange"].forEach(id=>$(id).addEventListener("input",()=>{renderMoves();updateBadges();}));
+["q","fCat","fStatus","fRoomA"].forEach(id=>$(id).addEventListener("input",()=>{renderAssets();updateBadges();}));
+["mq","mReason","mRange","fRoomM"].forEach(id=>$(id).addEventListener("input",()=>{renderMoves();updateBadges();}));
 $("xq").addEventListener("input",renderMasters);
 
 function errText(e){const c=e&&e.code;
@@ -1221,12 +1229,12 @@ function errText(e){const c=e&&e.code;
 document.addEventListener("click",e=>{const b=e.target.closest("[data-ftoggle]");if(!b)return;
   const f=$(b.dataset.ftoggle),open=!f.classList.contains("fopen");f.classList.toggle("fopen",open);b.setAttribute("aria-expanded",String(open));});
 document.addEventListener("click",e=>{const b=e.target.closest("[data-fclear]");if(!b)return;
-  if(b.dataset.fclear==="filtA"){$("q").value="";setSel($("fCat"),[]);setSel($("fStatus"),[]);}
-  else{$("mq").value="";setSel($("mReason"),[]);$("mRange").value="30";}
+  if(b.dataset.fclear==="filtA"){$("q").value="";setSel($("fCat"),[]);setSel($("fStatus"),[]);setSel($("fRoomA"),[]);}
+  else{$("mq").value="";setSel($("mReason"),[]);setSel($("fRoomM"),[]);$("mRange").value="30";}
   S.bsel=new Set();render();});
 function updateBadges(){
-  const nA=(S.bsel.size>0)+(selVals($("fCat")).length>0)+(selVals($("fStatus")).length>0);
-  const nM=(S.bsel.size>0)+(selVals($("mReason")).length>0)+($("mRange").value!=="30");
+  const nA=(S.bsel.size>0)+(selVals($("fRoomA")).length>0)+(selVals($("fCat")).length>0)+(selVals($("fStatus")).length>0);
+  const nM=(S.bsel.size>0)+(selVals($("fRoomM")).length>0)+(selVals($("mReason")).length>0)+($("mRange").value!=="30");
   for(const [id,n,q] of [["filtA",nA,"q"],["filtM",nM,"mq"]]){const bd=$(id).querySelector(".fbadge");bd.textContent=n;bd.hidden=!n;
     $(id).querySelector(".fclr").hidden=!(n||$(q).value.trim());}
 }
