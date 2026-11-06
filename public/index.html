@@ -44,6 +44,7 @@
   color-scheme:dark;
 }
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html,body{margin:0}
 body{background:var(--paper);color:var(--ink);font:15px/1.45 var(--body);}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -194,7 +195,7 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
   .appbar h1{flex:1;font-size:19px;text-align:center}
   .iconbtn{width:40px;height:40px;border:0;background:none;border-radius:10px;font-size:26px;line-height:1;cursor:pointer;color:var(--ink)}
   .iconbtn:hover{background:var(--paper)}
-  .iconbtn[hidden]{display:block;visibility:hidden}
+  .iconbtn.ghost{visibility:hidden}
   .homehead{display:flex;align-items:center;justify-content:space-between;gap:10px}
   .hh-title{font-family:var(--display);font-size:22px;font-weight:700}
   .homehead select{max-width:50%}
@@ -265,7 +266,7 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
   <header class="top">
     <div>
       <h1 id="deskTitle">Dashboard</h1>
-      <p id="subtitle">Every bed, fan and fridge, where it is and how it got there.</p>
+      <p id="subtitle" hidden></p>
     </div>
     <div class="actions">
       <button class="btn" id="btnAddAsset" type="button">+ Add asset</button>
@@ -328,8 +329,7 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
 
   <section id="view-blocks" hidden>
     <div class="filters" style="margin-bottom:10px">
-      <span class="sub">Blocks, stores and workshops are all locations assets can move between.</span>
-      <button class="btn small pageadd" id="btnAddBlock" type="button" style="margin-left:auto">+ Add block / location</button>
+      <button class="btn small pageadd" id="btnAddBlock" type="button" style="margin-left:auto">+ Add block</button>
     </div>
     <div class="blocks" id="blockCards"></div>
   </section>
@@ -421,9 +421,9 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
 <!-- Block dialog -->
 <div class="overlay" id="dlgBlock" hidden>
   <form class="dialog" id="formBlock" novalidate>
-    <h2 id="blockTitle">Add block / location</h2>
-    <div class="grid2">
-      <div class="field"><label for="bName">Name</label><input id="bName" required placeholder="e.g. Block D"></div>
+    <h2 id="blockTitle">Add block</h2>
+    <div class="field"><label for="bName">Block name</label><input id="bName" required placeholder="e.g. Block D"></div>
+    <div class="grid2" hidden>
       <div class="field"><label for="bCode">Short code</label><input id="bCode" maxlength="4" placeholder="e.g. D"><span class="hint">Starts every asset tag here, as in D-FAN-001</span></div>
       <div class="field"><label for="bKind">Type</label><select id="bKind">
         <option>Residential</option><option>Store</option><option>Repair</option><option>Common area</option></select></div>
@@ -575,7 +575,7 @@ function renderStrip(){
   const items=[{id:"all",name:"All blocks",n:S.assets.size},...blockList().map(b=>({id:b.id,name:b.name,n:counts[b.id]||0}))];
   const html=items.map(b=>`<option value="${esc(b.id)}">${esc(b.name)} (${b.n})</option>`).join("");
   for(const id of ["fBlockH","fBlockA","fBlockM"]){$(id).innerHTML=html;$(id).value=S.block;}
-  $("subtitle").textContent=S.block==="all"?"Every bed, fan and fridge, where it is and how it got there.":`Showing ${bname(S.block)} only.`;
+  $("subtitle").textContent=S.block==="all"?"":`Showing ${bname(S.block)} only.`;$("subtitle").hidden=S.block==="all";
 }
 const ICO={
   assets:'<svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg>',
@@ -645,9 +645,7 @@ function renderBlocks(){
     const inW=S.moves.filter(m=>m.toBlockId===b.id&&m.at>=week).length,outW=S.moves.filter(m=>m.fromBlockId===b.id&&m.at>=week).length;
     const seg=STATUSES.map(s=>[s,as.filter(a=>a.status===s).length]).filter(x=>x[1]);
     return `<div class="bcard">
-      <div class="kind">${esc(b.kind||"Residential")}${b.code?` · code ${esc(b.code)}`:""}</div>
       <h3>${esc(b.name)}</h3>
-      <div class="sub">${esc(b.note||"")}</div>
       <div><b style="font-variant-numeric:tabular-nums">${as.length}</b> assets · <b style="font-variant-numeric:tabular-nums">${nr}</b> rooms/spots · <span class="sub">${inW} in, ${outW} out this week</span></div>
       <div class="bar">${seg.map(([s,n])=>`<span style="width:${n/as.length*100}%;background:${STATUS_COLOR[s]}" title="${esc(s)}: ${n}"></span>`).join("")}</div>
       <div class="legend">${seg.map(([s,n])=>`<span><span class="dot" style="background:${STATUS_COLOR[s]}"></span> ${esc(s)} ${n}</span>`).join("")||"No assets here yet"}</div>
@@ -696,7 +694,7 @@ function renderMasters(){
   const mobile=isMobile();
   const showMenu=mobile&&!S.masterOpen;
   $("masterMenu").hidden=!showMenu;$("masterDetail").hidden=showMenu;
-  $("masterMenu").innerHTML=[...Object.entries(MASTERS).map(([k,m])=>[`#masters-${k}`,k,m.label,m.hint,S[m.coll].size]),["#blocks","blocks","Blocks & locations","Hostel blocks, stores and the repair workshop.",S.blocks.size]]
+  $("masterMenu").innerHTML=[...Object.entries(MASTERS).map(([k,m])=>[`#masters-${k}`,k,m.label,m.hint,S[m.coll].size]),["#blocks","blocks","Blocks","Hostel blocks.",S.blocks.size]]
     .map(([href,i,l,h,n])=>`<a class="mitem" href="${href}"><span class="ico">${ICO[i]}</span><span class="grow"><b>${esc(l)}</b> <span class="sub">(${n})</span><div class="sub">${esc(h)}</div></span><span class="chev">›</span></a>`).join("");
   $("masterChips").innerHTML=Object.entries(MASTERS).map(([k,m])=>`<button class="bchip" type="button" data-master="${k}" aria-pressed="${S.master===k}">${esc(m.label)} <b>${S[m.coll].size}</b></button>`).join("")+
     `<a class="bchip" href="#blocks" style="text-decoration:none;color:inherit">Blocks <b>${S.blocks.size}</b></a>`;
@@ -766,7 +764,7 @@ $("formBulk").addEventListener("submit",async e=>{e.preventDefault();if(!needDb(
 
 /* ---------- tabs ---------- */
 const TABS=["home","assets","movements","blocks","masters"];
-const TITLES={home:"Dashboard",assets:"Assets",movements:"Movement log",blocks:"Blocks & locations",masters:"Masters"};
+const TITLES={home:"Dashboard",assets:"Assets",movements:"Movement log",blocks:"Blocks",masters:"Masters"};
 const MQ=window.matchMedia?window.matchMedia("(max-width:999px)"):{get matches(){return window.innerWidth<1000}};const isMobile=()=>MQ.matches;
 function setTab(h){let t=h||"home",sub=null;
   if(t.startsWith("masters-")){sub=t.slice(8);t="masters";if(!MASTERS[sub])sub=null;}
@@ -776,8 +774,8 @@ function setTab(h){let t=h||"home",sub=null;
   document.querySelectorAll(".bnav [data-bn]").forEach(a=>a.setAttribute("aria-current",a.dataset.bn===t?"page":"false"));
   const title=t==="masters"&&(sub||!isMobile())?MASTERS[S.master].label:TITLES[t];
   $("abTitle").textContent=t==="home"?"Asset Tracker":title;$("deskTitle").textContent=title;
-  $("abBack").hidden=t==="home";
-  $("abAdd").hidden=!S.canWrite||!(t==="assets"||t==="blocks"||(t==="masters"&&sub)||t==="home");
+  $("abBack").classList.toggle("ghost",t==="home");
+  $("abAdd").classList.toggle("ghost",!S.canWrite||!(t==="assets"||t==="blocks"||(t==="masters"&&sub)||t==="home"));
   renderSide();renderMasters();window.scrollTo(0,0);}
 MQ.addEventListener?.("change",()=>setTab(location.hash.slice(1)));
 window.addEventListener("hashchange",()=>setTab(location.hash.slice(1)));
@@ -905,7 +903,7 @@ $("formMove").addEventListener("submit",async e=>{e.preventDefault();if(!needDb(
 /* ---------- block form ---------- */
 let editingBlock=null;
 function openBlock(id){editingBlock=id||null;const b=id?S.blocks.get(id):null;
-  $("blockTitle").textContent=b?`Edit ${b.name}`:"Add block / location";
+  $("blockTitle").textContent=b?`Edit ${b.name}`:"Add block";
   $("bName").value=b?.name||"";$("bCode").value=b?.code||"";$("bKind").value=b?.kind||"Residential";$("bNote").value=b?.note||"";
   $("btnDelBlock").hidden=!b;$("blockErr").textContent="";openDlg("dlgBlock");}
 $("formBlock").addEventListener("submit",async e=>{e.preventDefault();if(!needDb())return;
