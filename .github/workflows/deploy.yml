@@ -47,6 +47,10 @@ jobs:
           open("public/api/config.php", "w").write("\n".join(lines) + "\n")
           PY
 
+      - name: Stamp script links with this version (cache busting)
+        if: env.FTP_SERVER != ''
+        run: sed -i "s#src=\"hosted.js\"#src=\"hosted.js?v=${GITHUB_SHA::8}\"#" public/index.html && grep -o 'hosted.js?v=[a-f0-9]*' public/index.html
+
       - name: Install lftp
         if: env.FTP_SERVER != ''
         run: sudo apt-get update -q >/dev/null && sudo apt-get install -y -q lftp >/dev/null && lftp --version | head -1

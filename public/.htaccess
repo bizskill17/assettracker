@@ -1,3 +1,10 @@
 # Open the tracker (index.html) before any placeholder page Hostinger adds (default.php / index.php).
 DirectoryIndex index.html
 Options -Indexes
+
+# Always check for a newer app version, so deploys show up without a hard refresh.
+<IfModule mod_headers.c>
+  <FilesMatch "\.(html|js)$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>
