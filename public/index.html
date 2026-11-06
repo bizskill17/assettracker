@@ -432,6 +432,8 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
   <div id="sideNav"></div>
   <div class="sgroup">Masters</div>
   <div id="sideMasters"></div>
+  <div class="sgroup">Filter by block</div>
+  <div id="sideBlocks"></div>
 </aside>
 <div class="sidebg" id="sideBg" hidden></div>
 <div class="wrap">
@@ -804,6 +806,9 @@ function renderSide(){
   $("sideNav").innerHTML=tabs.map(([k,l,n,ic])=>`<a class="sitem" href="#${k}" data-tab="${k}" aria-current="${S.tab===k?"page":"false"}"><span class="si">${ic}${esc(l)}</span> <b>${n}</b></a>`).join("")+
     `<button class="sitem" type="button" data-go="act:export"><span class="si">${ICO.export}Export movement log</span></button>`;
   $("sideMasters").innerHTML=Object.entries(MASTERS).map(([k,m])=>`<button class="sitem" type="button" data-master="${k}" aria-pressed="${S.tab==="masters"&&S.master===k}"><span class="si">${ICO[k]||""}${esc(m.label)}</span> <b>${S[m.coll].size}</b></button>`).join("");
+  const counts={};for(const a of S.assets.values())counts[a.blockId]=(counts[a.blockId]||0)+1;
+  $("sideBlocks").innerHTML=[{id:"all",name:"All blocks",n:S.assets.size},...blockList().map(b=>({id:b.id,name:b.name,n:counts[b.id]||0}))]
+    .map(b=>`<button class="sitem" type="button" data-block="${esc(b.id)}" aria-pressed="${b.id==="all"?!S.bsel.size:S.bsel.has(b.id)}">${esc(b.name)} <b>${b.n}</b></button>`).join("");
 }
 function render(){setTimeout(updateBadges,0);renderSide();renderTiles();renderStrip();refreshOptions();renderHome();renderAssets();renderMoves();renderBlocks();renderMasters();
   const anySample=[S.blocks,S.assets,S.rooms,S.staff,S.vendors].some(m=>[...m.values()].some(x=>x.sample));
