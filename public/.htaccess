@@ -1,0 +1,3 @@
+# Open the tracker (index.html) before any placeholder page Hostinger adds (default.php / index.php).
+DirectoryIndex index.html
+Options -Indexes
