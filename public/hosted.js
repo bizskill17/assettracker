@@ -149,7 +149,7 @@
   .uc-out svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .homeuser{display:none}
   @media (max-width:999px){.homeuser{display:flex;padding:4px 2px 0}}
-  body.not-admin .pageadd, body.not-admin [data-editmaster], body.not-admin #btnBulkRooms, body.not-admin [data-editblock], body.not-admin [data-delmaster], body.not-admin [data-delblock], body.not-admin #btnAddMaster{display:none!important}
+  body.not-admin .pageadd, body.not-admin [data-editmaster], body.not-admin #btnBulkRooms, body.not-admin [data-editblock], body.not-admin [data-delmaster], body.not-admin [data-delblock], body.not-admin #aTypeAdd, body.not-admin #btnAddMaster{display:none!important}
   `;
   const style = document.createElement("style");
   style.textContent = css;
@@ -162,9 +162,9 @@
       <form id="authForm" novalidate>
         <h1 id="authTitle">Sign in</h1>
         <p id="authText">Hostel Asset Movement Tracker</p>
-        <div class="field" id="authNameF" hidden><label for="authName">Your name</label><input id="authName" autocomplete="name"></div>
-        <div class="field"><label for="authEmail">Email</label><input id="authEmail" type="email" autocomplete="username" inputmode="email"></div>
-        <div class="field"><label for="authPass">Password</label><input id="authPass" type="password" autocomplete="current-password"></div>
+        <div class="field" id="authNameF" hidden><label for="authName">Your name <span class="req">*</span></label><input id="authName" autocomplete="name"></div>
+        <div class="field"><label for="authEmail">Email <span class="req">*</span></label><input id="authEmail" type="email" autocomplete="username" inputmode="email"></div>
+        <div class="field"><label for="authPass">Password <span class="req">*</span></label><input id="authPass" type="password" autocomplete="current-password"></div>
         <div class="err" id="authErr"></div>
         <button class="btn primary" type="submit" id="authBtn">Sign in</button>
       </form></div>`);

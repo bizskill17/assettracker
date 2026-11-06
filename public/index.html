@@ -23,6 +23,7 @@
   --bad:#b23a32; --bad-bg:#f8e3e0;
   --idle:#4f5d68; --idle-bg:#e8ebee;
   --vio:#5b47b0; --vio-bg:#ece8fb;
+  --lock:#e6e8eb;
   --display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
   --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
@@ -33,7 +34,7 @@
     --paper:#12171c; --surface:#1a2128; --ink:#e6ebee; --muted:#e6ebee; --line:#2b353e;
     --accent:#6fb0de; --accent-ink:#0d1a24; --accent-soft:#1d3142;
     --ok:#6cc890; --ok-bg:#183326; --warn:#e8b55a; --warn-bg:#352a14;
-    --bad:#ee8a80; --bad-bg:#3a1f1c; --idle:#a9b5be; --idle-bg:#252e36; --vio:#b7a8f5; --vio-bg:#2a2445;
+    --bad:#ee8a80; --bad-bg:#3a1f1c; --idle:#a9b5be; --idle-bg:#252e36; --vio:#b7a8f5; --vio-bg:#2a2445; --lock:#2a3138;
     color-scheme:dark;
   }
 }
@@ -41,7 +42,7 @@
   --paper:#12171c; --surface:#1a2128; --ink:#e6ebee; --muted:#e6ebee; --line:#2b353e;
   --accent:#6fb0de; --accent-ink:#0d1a24; --accent-soft:#1d3142;
   --ok:#6cc890; --ok-bg:#183326; --warn:#e8b55a; --warn-bg:#352a14;
-  --bad:#ee8a80; --bad-bg:#3a1f1c; --idle:#a9b5be; --idle-bg:#252e36; --vio:#b7a8f5; --vio-bg:#2a2445;
+  --bad:#ee8a80; --bad-bg:#3a1f1c; --idle:#a9b5be; --idle-bg:#252e36; --vio:#b7a8f5; --vio-bg:#2a2445; --lock:#2a3138;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -296,6 +297,13 @@ a.ac-name{color:var(--accent);text-decoration:none}
 .pick input[hidden]{display:none}
 .hint{font-size:12px;color:var(--muted)}
 .req{color:var(--bad)}
+.withadd{display:flex;gap:6px;align-items:stretch}
+.withadd .ss{flex:1;min-width:0}
+.addmini{width:40px;flex:none;border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);border-radius:8px;cursor:pointer;display:grid;place-items:center}
+.addmini:hover{background:var(--accent);color:var(--accent-ink)}
+.addmini svg{width:18px;height:18px}
+input[readonly],input:disabled,textarea:disabled,select:disabled,.ss.ss-dis{background:var(--lock)!important;color:var(--ink);opacity:1!important;cursor:not-allowed;border-color:var(--line)}
+.ss.ss-dis .ss-car{visibility:hidden}
 .progress{font-size:13px;color:var(--muted)}
 .side{display:none}
 .brand{font-family:var(--display);font-size:20px;font-weight:700;padding:4px 10px 12px;line-height:1.15}
@@ -535,14 +543,13 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
   <form class="dialog" id="formAsset" novalidate>
     <h2 id="assetTitle">Add asset</h2>
     <div class="grid2">
-      <div class="field"><label for="aType">Item type</label><select id="aType"></select></div>
-      <div class="field"><label for="aCat">Category</label><select id="aCat"></select></div>
-      <div class="field full"><label for="aName">Item description</label><input id="aName" required placeholder="e.g. Ceiling fan, Usha 48in"></div>
-      <div class="field"><label for="aBlock">Block / location</label><select id="aBlock"></select></div>
-      <div class="field"><label for="aRoomSel">Room no. <span class="req">*</span></label><div class="pick"><select id="aRoomSel"></select><input id="aRoom" placeholder="Type room or spot" hidden></div></div>
-      <div class="field"><label for="aTag">Asset tag</label><input id="aTag" required placeholder="e.g. A-FAN-014"><span class="hint" id="aTagHint"></span></div>
-      <div class="field"><label for="aStatus">Status</label><select id="aStatus"></select></div>
-      <div class="field"><label for="aCond">Condition</label><select id="aCond"><option>Good</option><option>Fair</option><option>Poor</option><option>Damaged</option></select></div>
+      <div class="field"><label for="aType">Item <span class="req">*</span></label><div class="withadd"><select id="aType"></select><button type="button" class="addmini" id="aTypeAdd" aria-label="Add a new item" title="Add a new item"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div><input id="aName" type="hidden"></div>
+      <div class="field"><label for="aCat">Category</label><select id="aCat" disabled></select></div>
+      <div class="field"><label for="aBlock">Block <span class="req">*</span></label><select id="aBlock"></select></div>
+      <div class="field"><label for="aRoomSel">Room <span class="req">*</span></label><div class="pick"><select id="aRoomSel"></select><input id="aRoom" placeholder="Type room or spot" hidden></div></div>
+      <div class="field"><label for="aTag">Asset tag <span class="req">*</span></label><input id="aTag" required autocomplete="off"><span class="hint" id="aTagHint" hidden></span></div>
+      <div class="field"><label for="aStatus">Status <span class="req">*</span></label><select id="aStatus"></select></div>
+      <div class="field"><label for="aCond">Condition <span class="req">*</span></label><select id="aCond"><option>Good</option><option>Fair</option><option>Poor</option><option>Damaged</option></select></div>
       <div class="field"><label for="aVendor">Supplier</label><select id="aVendor"></select></div>
       <div class="field full"><label for="aNotes">Notes</label><textarea id="aNotes" placeholder="Serial no., purchase date, bill no.…"></textarea></div>
     </div>
@@ -565,22 +572,22 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
 <div class="overlay" id="dlgMove" hidden>
   <form class="dialog" id="formMove" novalidate>
     <h2>Log a movement</h2>
-    <div class="field"><label for="mAsset">Asset</label>
+    <div class="field"><label for="mAsset">Asset <span class="req">*</span></label>
       <input id="mAsset" list="assetOptions" placeholder="Type tag or item name" autocomplete="off">
       <datalist id="assetOptions"></datalist>
     </div>
     <div class="fromto" id="mFrom">Pick an asset to see where it is now.</div>
     <div class="grid2">
-      <div class="field"><label for="mReasonIn">Reason</label><select id="mReasonIn"></select></div>
-      <div class="field"><label for="mDate">Date &amp; time</label>
+      <div class="field"><label for="mReasonIn">Reason <span class="req">*</span></label><select id="mReasonIn"></select></div>
+      <div class="field"><label for="mDate">Date &amp; time <span class="req">*</span></label>
         <div class="dtrow">
           <div class="dtdate"><input id="mDate" inputmode="numeric" placeholder="dd/mm/yyyy" maxlength="10" autocomplete="off"><button type="button" class="pickbtn" id="mDatePick" aria-label="Choose date from calendar"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></button><input type="date" id="mDateNative" class="vh" tabindex="-1" aria-hidden="true"></div>
           <input id="mTime" type="time" aria-label="Time">
         </div></div>
-      <div class="field"><label for="mToBlock">To block / location</label><select id="mToBlock"></select></div>
-      <div class="field"><label for="mRoomSel">To room no. <span class="req">*</span></label><div class="pick"><select id="mRoomSel"></select><input id="mToRoom" placeholder="Type room or spot" hidden></div></div>
-      <div class="field"><label for="mStatusIn">Status after move</label><select id="mStatusIn"></select></div>
-      <div class="field"><label for="mBySel">Handled by</label><div class="pick"><select id="mBySel"></select><input id="mBy" placeholder="Type name" hidden></div></div>
+      <div class="field"><label for="mToBlock">To block <span class="req">*</span></label><select id="mToBlock"></select></div>
+      <div class="field"><label for="mRoomSel">To room <span class="req">*</span></label><div class="pick"><select id="mRoomSel"></select><input id="mToRoom" placeholder="Type room or spot" hidden></div></div>
+      <div class="field"><label for="mStatusIn">Status after move <span class="req">*</span></label><select id="mStatusIn"></select></div>
+      <div class="field"><label for="mBySel">Handled by <span class="req">*</span></label><div class="pick"><select id="mBySel"></select><input id="mBy" placeholder="Type name" hidden></div></div>
       <div class="field full"><label for="mVendor">Vendor / contractor <span class="hint">(optional)</span></label><select id="mVendor"></select></div>
       <div class="field full"><label for="mNotes">Notes</label><textarea id="mNotes" placeholder="Approval ref, gate pass no., student name…"></textarea></div>
     </div>
@@ -596,7 +603,7 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
 <div class="overlay" id="dlgBlock" hidden>
   <form class="dialog" id="formBlock" novalidate>
     <h2 id="blockTitle">Add block</h2>
-    <div class="field"><label for="bName">Block name</label><input id="bName" required placeholder="e.g. Block D"></div>
+    <div class="field"><label for="bName">Block name <span class="req">*</span></label><input id="bName" required placeholder="e.g. Block D"></div>
     <div class="grid2" hidden>
       <div class="field"><label for="bCode">Short code</label><input id="bCode" maxlength="4" placeholder="e.g. D"><span class="hint">Starts every asset tag here, as in D-FAN-001</span></div>
       <div class="field"><label for="bKind">Type</label><select id="bKind">
@@ -636,10 +643,10 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
     <h2>Bulk add rooms</h2>
     <p class="sub" style="margin:0">Adds a numbered range of rooms in one go, for example 101 to 130 on the 1st floor. Rooms that already exist are skipped.</p>
     <div class="grid2">
-      <div class="field"><label for="kBlock">Block</label><select id="kBlock"></select></div>
+      <div class="field"><label for="kBlock">Block <span class="req">*</span></label><select id="kBlock"></select></div>
       <div class="field"><label for="kFloor">Floor</label><select id="kFloor"></select></div>
-      <div class="field"><label for="kFrom">From room no.</label><input id="kFrom" type="number" inputmode="numeric" placeholder="101"></div>
-      <div class="field"><label for="kTo">To room no.</label><input id="kTo" type="number" inputmode="numeric" placeholder="130"></div>
+      <div class="field"><label for="kFrom">From room no. <span class="req">*</span></label><input id="kFrom" type="number" inputmode="numeric" placeholder="101"></div>
+      <div class="field"><label for="kTo">To room no. <span class="req">*</span></label><input id="kTo" type="number" inputmode="numeric" placeholder="130"></div>
       <div class="field"><label for="kType">Room type</label><select id="kType"></select></div>
       <div class="field"><label for="kCap">Beds per room</label><input id="kCap" type="number" inputmode="numeric" placeholder="2"></div>
     </div>
@@ -875,7 +882,7 @@ function renderAssets(){
     {h:"Item",cls:"t-main",v:a=>esc(a.name)},
     {h:"Category",v:a=>esc(a.category)},
     {h:"Block",v:a=>esc(bname(a.blockId))},
-    {h:"Room no.",v:a=>esc(a.room||"—")},
+    {h:"Room",v:a=>esc(a.room||"—")},
     {h:"Status",v:a=>pill(a.status)},
     {h:"Condition",v:a=>esc(a.condition||"")},
     {h:"Last moved",cls:"nowrap",v:a=>fmtDay(a.lastMovedAt)},
@@ -969,9 +976,9 @@ const MASTERS={
     show:[["Name",s=>s.name],["Role",s=>s.role],["Block",s=>s.blockId?bname(s.blockId):"All blocks"],["Phone",s=>s.phone],["Email",s=>s.email||""],["Active",s=>(s.active||"Yes")+(window.HOSTED&&s.hasLogin?" · login":"")]],
     list:()=>entries(S.staff).filter(u=>!u.blockId||inB(u.blockId)).sort((a,b)=>ncmp(a.name,b.name)),
     dup:(b,id)=>entries(S.staff).find(s=>s.id!==id&&s.name.toLowerCase()===b.name.toLowerCase())&&`${b.name} is already a user.`},
-  itemTypes:{label:"Item types",one:"item type",coll:"itemTypes",hint:"Kinds of items. The tag prefix builds asset tags such as A-FAN-001.",cols:"1.6fr 1fr .8fr .7fr 90px",
-    fields:[{k:"name",l:"Item type",req:1,ph:"e.g. Ceiling fan 48in"},{k:"category",l:"Category",t:"select",o:cats},{k:"prefix",l:"Tag prefix",req:1,ph:"e.g. FAN",upper:1,max:5}],
-    show:[["Item type",t=>t.name],["Category",t=>t.category],["Prefix",t=>t.prefix],["Assets",t=>[...S.assets.values()].filter(a=>a.itemTypeId===t.id).length]],
+  itemTypes:{label:"Items",one:"item",coll:"itemTypes",hint:"Kinds of items. The tag prefix builds asset tags such as A-FAN-001.",cols:"1.6fr 1fr .8fr .7fr 90px",
+    fields:[{k:"name",l:"Item",req:1,ph:"e.g. Ceiling fan 48in"},{k:"category",l:"Category",t:"select",o:cats},{k:"prefix",l:"Tag prefix",req:1,ph:"e.g. FAN",upper:1,max:5}],
+    show:[["Item",t=>t.name],["Category",t=>t.category],["Prefix",t=>t.prefix],["Assets",t=>[...S.assets.values()].filter(a=>a.itemTypeId===t.id).length]],
     list:()=>itemTypeList(),
     dup:(b,id)=>{const d=entries(S.itemTypes).find(t=>t.id!==id&&t.prefix===b.prefix);return d&&`Prefix ${b.prefix} is already used by ${d.name}.`;},
     inUse:t=>{const n=[...S.assets.values()].filter(a=>a.itemTypeId===t.id).length;return n&&`${n===1?"1 asset uses":n+" assets use"} this item type.`;}},
@@ -1033,8 +1040,10 @@ function renderMasters(){
   $("masterList").innerHTML=`<span data-pgtop="m-${S.master}"></span><div class="desk-only">${tableHTML(cols,pg.items,x=>x.active==="No"?` class="inactive"`:"",pg.start)}</div><div class="acards">${cards}</div>${pagerHTML(pg)}`;
 }
 let editingMaster=null;
-function openMaster(id){
-  const M=MASTERS[S.master];editingMaster=id||null;const x=id?S[M.coll].get(id):{};
+let masterKey="rooms",quickAddCb=null;
+function openMaster(id,key,onAdded){
+  masterKey=key||S.master;quickAddCb=onAdded||null;
+  const M=MASTERS[masterKey];editingMaster=id||null;const x=id?S[M.coll].get(id):{};
   $("masterTitle").textContent=id?`Edit ${M.one}`:`Add ${M.one}`;
   $("masterFields").innerHTML=M.fields.map(f=>{
     const fid="mf_"+f.k,val=x[f.k]??(f.k==="blockId"&&!id?oneB():"");
@@ -1042,11 +1051,11 @@ function openMaster(id){
     if(f.t==="block")ctl=`<select id="${fid}">${f.blank?`<option value="">${esc(f.blank)}</option>`:""}${blockList().map(b=>`<option value="${esc(b.id)}"${b.id===val?" selected":""}>${esc(b.name)}</option>`).join("")}</select>`;
     else if(f.t==="select"){const o=f.o().map(v=>typeof v==="string"?{v,t:v}:v);ctl=`<select id="${fid}">${f.blank?`<option value="">—</option>`:""}${o.map(v=>`<option value="${esc(v.v)}"${v.v===val?" selected":""}>${esc(v.t)}</option>`).join("")}</select>`;}
     else ctl=`<input id="${fid}" ${f.t==="number"?'type="number" inputmode="numeric"':f.t==="password"?'type="password" autocomplete="new-password"':""} value="${f.t==="password"?"":esc(val)}" placeholder="${esc(f.ph||"")}"${f.max?` maxlength="${f.max}"`:""}${f.upper?' style="text-transform:uppercase"':""}>`;
-    return `<div class="field${f.full||M.fields.length===1?" full":""}"><label for="${fid}">${esc(f.l)}</label>${ctl}</div>`;}).join("");
+    return `<div class="field${f.full||M.fields.length===1?" full":""}"><label for="${fid}">${esc(f.l)}${f.req?' <span class="req">*</span>':""}</label>${ctl}</div>`;}).join("");
   $("btnDelMaster").hidden=!id;$("masterErr").textContent="";openDlg("dlgMaster");
 }
 $("formMaster").addEventListener("submit",async e=>{e.preventDefault();if(!needDb())return;
-  const M=MASTERS[S.master];const body={};
+  const M=MASTERS[masterKey];const body={};
   for(const f of M.fields){let v=$("mf_"+f.k).value;v=f.t==="number"?(v===""?null:+v):String(v).trim();if(f.upper&&v)v=v.toUpperCase();
     if(f.req&&!v){$("masterErr").textContent=`${f.l} is required.`;return}body[f.k]=v;}
   const d=M.dup&&M.dup(body,editingMaster);if(d){$("masterErr").textContent=d;return}
@@ -1056,8 +1065,8 @@ $("formMaster").addEventListener("submit",async e=>{e.preventDefault();if(!needD
       const old=S[M.coll].get(editingMaster);
       await S.db.doc(M.coll+"/"+editingMaster).update(body);
       if(M.rename==="category"&&old.name!==body.name){for(const [aid,a] of S.assets)if(a.category===old.name)await S.db.doc("assets/"+aid).update({category:body.name});}
-      if(S.master==="rooms"&&(old.number!==body.number||old.blockId!==body.blockId)){for(const [aid,a] of S.assets)if(a.blockId===old.blockId&&a.room===old.number)await S.db.doc("assets/"+aid).update({blockId:body.blockId,room:body.number});}
-    }else await S.db.collection(M.coll).add({...body,order:S[M.coll].size+1});
+      if(masterKey==="rooms"&&(old.number!==body.number||old.blockId!==body.blockId)){for(const [aid,a] of S.assets)if(a.blockId===old.blockId&&a.room===old.number)await S.db.doc("assets/"+aid).update({blockId:body.blockId,room:body.number});}
+    }else{const ref=await S.db.collection(M.coll).add({...body,order:S[M.coll].size+1});if(quickAddCb&&ref)quickAddCb(ref.id);}
     closeDlg("dlgMaster");toast("Saved");
   }catch(err){$("masterErr").textContent=errText(err);}finally{$("btnSaveMaster").disabled=false;}
 });
@@ -1122,25 +1131,17 @@ function needDb(){if(!S.db){toast(window.HOSTED?"Sign in to save changes.":"Data
 /* ---------- asset form ---------- */
 let editingAsset=null,autoTag=false;
 function blockCode(bid){const b=S.blocks.get(bid);if(!b)return"X";if(b.code)return String(b.code).toUpperCase();const m=String(b.name).match(/block\s+(\w+)/i);return (m?m[1]:String(b.name).slice(0,1)).toUpperCase();}
-function suggestTag(){
-  const t=S.itemTypes.get($("aType").value);const code=blockCode($("aBlock").value);
-  if(!t){$("aTagHint").textContent="";return}
-  const pre=`${code}-${t.prefix}-`;let max=0;
-  for(const a of S.assets.values()){const s=String(a.tag);if(s.toUpperCase().startsWith(pre)){const n=parseInt(s.slice(pre.length),10);if(n>max)max=n;}}
-  const next=pre+String(max+1).padStart(3,"0");
-  if(!editingAsset&&(autoTag||!$("aTag").value.trim())){$("aTag").value=next;autoTag=true;}
-  $("aTagHint").textContent=`Next free tag: ${next}`;
-}
+function suggestTag(){/* asset tag is entered by hand */}
 function openAsset(id){
   editingAsset=id||null;const a=id?S.assets.get(id):null;autoTag=false;
   if(!id&&!S.blocks.size){toast("Add a block first.");location.hash="#blocks";return}
   $("assetTitle").textContent=a?`${a.tag} (${a.name})`:"Add asset";
-  opts($("aType"),itemTypeList().map(t=>({v:t.id,t:`${t.name} (${t.prefix})`})),"— None —");$("aType").value=a?.itemTypeId||"";
-  opts($("aCat"),cats());
+  fillItemTypes(a?.itemTypeId||"");
+  opts($("aCat"),cats(),"—");
   opts($("aVendor"),vendorList("Supplier").map(v=>({v:v.id,t:v.name})),"— None —");$("aVendor").value=a?.supplierId||"";
   fillBlockSelect($("aBlock"),a?.blockId||oneB());
   setPicker($("aRoomSel"),$("aRoom"),roomOpts($("aBlock").value),a?.room||"");
-  $("aTag").value=a?.tag||"";$("aName").value=a?.name||"";$("aCat").value=a?.category||cats()[0];
+  $("aTag").value=a?.tag||"";$("aName").value=a?.name||"";$("aCat").value=a?.category||"";
   $("aStatus").value=a?.status||"In use";$("aCond").value=a?.condition||"Good";$("aNotes").value=a?.notes||"";
   $("btnDelAsset").hidden=!(a&&S.canWrite);$("btnSaveAsset").hidden=!S.canWrite;$("assetErr").textContent="";
   const hist=a?S.moves.filter(m=>m.assetId===id):[];
@@ -1148,14 +1149,20 @@ function openAsset(id){
   $("assetHist").innerHTML=hist.length?hist.map(m=>`<div><b>${esc(fmtWhen(m.at))}</b> · ${esc(m.reason)}<br>${esc(bname(m.fromBlockId))}${m.fromRoom?" · "+esc(m.fromRoom):""} → ${esc(bname(m.toBlockId))}${m.toRoom?" · "+esc(m.toRoom):""} <span class="sub">${esc(m.handledBy||"")}${m.vendor?" · "+esc(m.vendor):""}</span></div>`).join(""):`<div class="sub">No movements logged yet.</div>`;
   suggestTag();openDlg("dlgAsset");
 }
-$("aType").addEventListener("change",()=>{const t=S.itemTypes.get($("aType").value);
-  if(t){if(!$("aName").value.trim()||autoTag)$("aName").value=t.name;if(t.category)$("aCat").value=t.category;}suggestTag();});
-$("aBlock").addEventListener("change",()=>{setPicker($("aRoomSel"),$("aRoom"),roomOpts($("aBlock").value),"");suggestTag();});
+function fillItemTypes(val){opts($("aType"),itemTypeList().map(t=>({v:t.id,t:`${t.name} (${t.prefix})`})),"— Select —");$("aType").value=val;}
+$("aType").addEventListener("change",()=>{const t=S.itemTypes.get($("aType").value);$("assetErr").textContent="";if(!t){$("aCat").value="";}
+  if(t){$("aName").value=t.name;if(t.category){if(![...$("aCat").options].some(o=>o.value===t.category))$("aCat").insertAdjacentHTML("beforeend",`<option>${esc(t.category)}</option>`);$("aCat").value=t.category;}}});
+$("aTypeAdd").addEventListener("click",()=>{if(!needDb())return;
+  openMaster(null,"itemTypes",id=>{let n=0;const wait=setInterval(()=>{if(S.itemTypes.has(id)||++n>40){clearInterval(wait);if(S.itemTypes.has(id)){fillItemTypes(id);$("aType").dispatchEvent(new Event("change",{bubbles:true}));toast("Item added and selected");}}},100);});});
+$("aBlock").addEventListener("change",()=>{$("assetErr").textContent="";setPicker($("aRoomSel"),$("aRoom"),roomOpts($("aBlock").value),"");suggestTag();});
 $("aTag").addEventListener("input",()=>{autoTag=false;});
 $("formAsset").addEventListener("submit",async e=>{e.preventDefault();if(!needDb())return;
-  const tag=$("aTag").value.trim().toUpperCase(),name=$("aName").value.trim();
-  if(!tag||!name){$("assetErr").textContent="Tag and item description are required.";return}
-  if(!pickerVal($("aRoomSel"),$("aRoom"))){$("assetErr").textContent="Choose a room no.";return}
+  const tag=$("aTag").value.trim().toUpperCase(),it=S.itemTypes.get($("aType").value);
+  if(!it){$("assetErr").textContent="Choose an item.";return}
+  const name=it.name;
+  if(!$("aBlock").value){$("assetErr").textContent="Choose a block.";return}
+  if(!pickerVal($("aRoomSel"),$("aRoom"))){$("assetErr").textContent="Choose a room.";return}
+  if(!tag){$("assetErr").textContent="Enter the asset tag.";return}
   const dup=[...S.assets.entries()].find(([id,a])=>id!==editingAsset&&String(a.tag).toUpperCase()===tag);
   if(dup){$("assetErr").textContent=`Tag ${tag} is already used by ${dup[1].name}.`;return}
   const body={tag,name,itemTypeId:$("aType").value,category:$("aCat").value,blockId:$("aBlock").value,room:pickerVal($("aRoomSel"),$("aRoom")),status:$("aStatus").value,condition:$("aCond").value,supplierId:$("aVendor").value,notes:$("aNotes").value.trim(),updatedAt:Date.now()};
@@ -1217,7 +1224,7 @@ $("formMove").addEventListener("submit",async e=>{e.preventDefault();if(!needDb(
   pickMoveAsset();const a=S.assets.get(moveAssetId);
   if(!a){$("moveErr").textContent="Choose an asset from the list.";return}
   const toBlockId=$("mToBlock").value,toRoom=pickerVal($("mRoomSel"),$("mToRoom")),handledBy=pickerVal($("mBySel"),$("mBy"));
-  if(!toRoom){$("moveErr").textContent="Choose the room no. it's moving to.";return}
+  if(!toRoom){$("moveErr").textContent="Choose the room it's moving to.";return}
   if(!handledBy){$("moveErr").textContent="Choose the user who handled the movement.";return}
   const dmy=parseDMY($("mDate").value);
   if(!dmy){$("moveErr").textContent="Enter the date as dd/mm/yyyy, for example 06/11/2026.";return}
