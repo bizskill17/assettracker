@@ -538,7 +538,7 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
       <div class="field"><label for="aCat">Category</label><select id="aCat"></select></div>
       <div class="field full"><label for="aName">Item description</label><input id="aName" required placeholder="e.g. Ceiling fan, Usha 48in"></div>
       <div class="field"><label for="aBlock">Block / location</label><select id="aBlock"></select></div>
-      <div class="field"><label for="aRoomSel">Room / spot</label><div class="pick"><select id="aRoomSel"></select><input id="aRoom" placeholder="Type room or spot" hidden></div></div>
+      <div class="field"><label for="aRoomSel">Room no.</label><div class="pick"><select id="aRoomSel"></select><input id="aRoom" placeholder="Type room or spot" hidden></div></div>
       <div class="field"><label for="aTag">Asset tag</label><input id="aTag" required placeholder="e.g. A-FAN-014"><span class="hint" id="aTagHint"></span></div>
       <div class="field"><label for="aStatus">Status</label><select id="aStatus"></select></div>
       <div class="field"><label for="aCond">Condition</label><select id="aCond"><option>Good</option><option>Fair</option><option>Poor</option><option>Damaged</option></select></div>
@@ -577,7 +577,7 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
           <input id="mTime" type="time" aria-label="Time">
         </div></div>
       <div class="field"><label for="mToBlock">To block / location</label><select id="mToBlock"></select></div>
-      <div class="field"><label for="mRoomSel">To room / spot</label><div class="pick"><select id="mRoomSel"></select><input id="mToRoom" placeholder="Type room or spot" hidden></div></div>
+      <div class="field"><label for="mRoomSel">To room no.</label><div class="pick"><select id="mRoomSel"></select><input id="mToRoom" placeholder="Type room or spot" hidden></div></div>
       <div class="field"><label for="mStatusIn">Status after move</label><select id="mStatusIn"></select></div>
       <div class="field"><label for="mBySel">Handled by</label><div class="pick"><select id="mBySel"></select><input id="mBy" placeholder="Type name" hidden></div></div>
       <div class="field full"><label for="mVendor">Vendor / contractor <span class="hint">(optional)</span></label><select id="mVendor"></select></div>
@@ -874,7 +874,7 @@ function renderAssets(){
     {h:"Item",cls:"t-main",v:a=>esc(a.name)},
     {h:"Category",v:a=>esc(a.category)},
     {h:"Block",v:a=>esc(bname(a.blockId))},
-    {h:"Room / spot",v:a=>esc(a.room||"—")},
+    {h:"Room no.",v:a=>esc(a.room||"—")},
     {h:"Status",v:a=>pill(a.status)},
     {h:"Condition",v:a=>esc(a.condition||"")},
     {h:"Last moved",cls:"nowrap",v:a=>fmtDay(a.lastMovedAt)},
@@ -958,8 +958,8 @@ function renderBlocks(){
 /* ---------- masters ---------- */
 const MASTERS={
   rooms:{label:"Rooms",one:"room",coll:"rooms",hint:"Rooms and spots in each block.",cols:"1fr 1fr 1fr 1.2fr .7fr .7fr 90px",
-    fields:[{k:"blockId",l:"Block",t:"block",req:1},{k:"number",l:"Room no. / spot",req:1,ph:"e.g. 204, Kitchen, Rack 3"},{k:"floor",l:"Floor",t:"select",o:()=>FLOORS,blank:1},{k:"type",l:"Type",t:"select",o:()=>ROOM_TYPES,blank:1},{k:"capacity",l:"Beds",t:"number"}],
-    show:[["Block",r=>bname(r.blockId)],["Room / spot",r=>r.number],["Floor",r=>r.floor],["Type",r=>r.type],["Beds",r=>r.capacity??""],["Assets",r=>[...S.assets.values()].filter(a=>a.blockId===r.blockId&&a.room===r.number).length]],
+    fields:[{k:"blockId",l:"Block",t:"block",req:1},{k:"number",l:"Room no.",req:1,ph:"e.g. 204, Kitchen, Rack 3"},{k:"floor",l:"Floor",t:"select",o:()=>FLOORS,blank:1},{k:"type",l:"Type",t:"select",o:()=>ROOM_TYPES,blank:1},{k:"capacity",l:"Beds",t:"number"}],
+    show:[["Block",r=>bname(r.blockId)],["Room no.",r=>r.number],["Floor",r=>r.floor],["Type",r=>r.type],["Beds",r=>r.capacity??""],["Assets",r=>[...S.assets.values()].filter(a=>a.blockId===r.blockId&&a.room===r.number).length]],
     list:()=>entries(S.rooms).filter(r=>inB(r.blockId)).sort((a,b)=>ncmp(bname(a.blockId),bname(b.blockId))||ncmp(a.number,b.number)),
     dup:(b,id)=>entries(S.rooms).find(r=>r.id!==id&&r.blockId===b.blockId&&String(r.number).toLowerCase()===String(b.number).toLowerCase())&&`Room ${b.number} already exists in ${bname(b.blockId)}.`,
     inUse:r=>{const n=[...S.assets.values()].filter(a=>a.blockId===r.blockId&&a.room===r.number).length;return n&&`${n===1?"1 asset is":n+" assets are"} in this room. Move ${n===1?"it":"them"} first.`;}},
