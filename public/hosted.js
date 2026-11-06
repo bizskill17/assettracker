@@ -149,7 +149,7 @@
   .uc-out svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .homeuser{display:none}
   @media (max-width:999px){.homeuser{display:flex;padding:4px 2px 0}}
-  body.not-admin .pageadd, body.not-admin [data-editmaster], body.not-admin #btnBulkRooms, body.not-admin [data-editblock], body.not-admin #btnAddMaster{display:none!important}
+  body.not-admin .pageadd, body.not-admin [data-editmaster], body.not-admin #btnBulkRooms, body.not-admin [data-editblock], body.not-admin [data-delmaster], body.not-admin [data-delblock], body.not-admin #btnAddMaster{display:none!important}
   `;
   const style = document.createElement("style");
   style.textContent = css;

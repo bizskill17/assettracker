@@ -681,7 +681,7 @@ function renderSide(){
 }
 function render(){refreshOptions();setTimeout(updateBadges,0);renderSide();renderTiles();renderStrip();renderHome();renderAssets();renderMoves();renderBlocks();renderMasters();
   const anySample=[S.blocks,S.assets,S.rooms,S.staff,S.vendors].some(m=>[...m.values()].some(x=>x.sample));
-  $("sampleNote").hidden=!(anySample&&S.canWrite);
+  $("sampleNote").hidden=true;
 }
 function scopedAssets(){return entries(S.assets).filter(a=>S.block==="all"||a.blockId===S.block);}
 function renderTiles(){
@@ -801,13 +801,13 @@ function renderBlocks(){
     {h:"Missing",cls:"r",v:r=>n(r.st("Missing"))},
     {h:"In · 7 days",cls:"r",v:r=>n(r.inW)},
     {h:"Out · 7 days",cls:"r",v:r=>n(r.outW)},
-    {h:"",cls:"t-act",v:r=>S.canWrite?`<button class="btn small" type="button" data-editblock="${esc(r.b.id)}">Edit</button>`:""}];
+    {h:"",cls:"t-act",v:r=>S.canWrite?`<span class="rowacts"><button class="btn small" type="button" data-editblock="${esc(r.b.id)}">Edit</button><button class="btn small danger" type="button" data-delblock="${esc(r.b.id)}">Delete</button></span>`:""}];
   const cards=rows.map(r=>{
     const chips=[["In use","s-inuse"],["In store","s-store"],["Under repair","s-repair"],["Missing","s-missing"]].map(([st,c])=>[st,c,r.st(st)]).filter(x=>x[2]).map(([st,c,n])=>`<span class="pill ${c}">${esc(st)} ${n}</span>`).join("");
     return `<div class="acard st-accent">
       <div class="ac-top"><a href="#assets" class="ac-name blink" data-viewblock="${esc(r.b.id)}">${esc(r.b.name)}</a><span class="sub">${r.total} asset${r.total===1?"":"s"}</span></div>
       <div class="ac-chips">${chips||`<span class="sub">No assets here yet</span>`}</div>
-      <div class="ac-foot"><span class="sub">${r.nr} room${r.nr===1?"":"s"}<br>This week: ${r.inW} in · ${r.outW} out</span>${S.canWrite?`<button class="btn small" type="button" data-editblock="${esc(r.b.id)}">Edit</button>`:""}</div>
+      <div class="ac-foot"><span class="sub">${r.nr} room${r.nr===1?"":"s"}<br>This week: ${r.inW} in · ${r.outW} out</span>${S.canWrite?`<span class="rowacts"><button class="btn small" type="button" data-editblock="${esc(r.b.id)}">Edit</button><button class="btn small danger" type="button" data-delblock="${esc(r.b.id)}">Delete</button></span>`:""}</div>
     </div>`;}).join("");
   $("blockCards").innerHTML=`<div class="desk-only">${tableHTML(cols,rows)}</div><div class="acards">${cards}</div>`;
 }
@@ -819,7 +819,7 @@ const MASTERS={
     show:[["Block",r=>bname(r.blockId)],["Room / spot",r=>r.number],["Floor",r=>r.floor],["Type",r=>r.type],["Beds",r=>r.capacity??""],["Assets",r=>[...S.assets.values()].filter(a=>a.blockId===r.blockId&&a.room===r.number).length]],
     list:()=>entries(S.rooms).filter(r=>S.block==="all"||r.blockId===S.block).sort((a,b)=>ncmp(bname(a.blockId),bname(b.blockId))||ncmp(a.number,b.number)),
     dup:(b,id)=>entries(S.rooms).find(r=>r.id!==id&&r.blockId===b.blockId&&String(r.number).toLowerCase()===String(b.number).toLowerCase())&&`Room ${b.number} already exists in ${bname(b.blockId)}.`,
-    inUse:r=>{const n=[...S.assets.values()].filter(a=>a.blockId===r.blockId&&a.room===r.number).length;return n&&`${n} assets are in this room. Move them first.`;}},
+    inUse:r=>{const n=[...S.assets.values()].filter(a=>a.blockId===r.blockId&&a.room===r.number).length;return n&&`${n===1?"1 asset is":n+" assets are"} in this room. Move ${n===1?"it":"them"} first.`;}},
   staff:{label:"Users",one:"user",coll:"staff",hint:"People who use the tracker and handle movements. Active users appear in the “Handled by” list.",cols:"1.3fr 1fr 1fr 1fr 1.4fr .6fr 90px",
     fields:[{k:"name",l:"Name",req:1},{k:"role",l:"Role",t:"select",o:()=>ROLES},{k:"blockId",l:"Block in charge",t:"block",blank:"All blocks"},{k:"phone",l:"Phone",ph:"Mobile number"},{k:"email",l:"Email",ph:"name@example.com"},{k:"active",l:"Active",t:"select",o:()=>["Yes","No"]},...(window.HOSTED?[{k:"password",l:"Login password",t:"password",ph:"Set or change; blank keeps it",full:1}]:[])],
     show:[["Name",s=>s.name],["Role",s=>s.role],["Block",s=>s.blockId?bname(s.blockId):"All blocks"],["Phone",s=>s.phone],["Email",s=>s.email||""],["Active",s=>(s.active||"Yes")+(window.HOSTED&&s.hasLogin?" · login":"")]],
@@ -830,7 +830,7 @@ const MASTERS={
     show:[["Item type",t=>t.name],["Category",t=>t.category],["Prefix",t=>t.prefix],["Assets",t=>[...S.assets.values()].filter(a=>a.itemTypeId===t.id).length]],
     list:()=>itemTypeList(),
     dup:(b,id)=>{const d=entries(S.itemTypes).find(t=>t.id!==id&&t.prefix===b.prefix);return d&&`Prefix ${b.prefix} is already used by ${d.name}.`;},
-    inUse:t=>{const n=[...S.assets.values()].filter(a=>a.itemTypeId===t.id).length;return n&&`${n} assets use this item type.`;}},
+    inUse:t=>{const n=[...S.assets.values()].filter(a=>a.itemTypeId===t.id).length;return n&&`${n===1?"1 asset uses":n+" assets use"} this item type.`;}},
   vendors:{label:"Vendors",one:"vendor",coll:"vendors",hint:"Suppliers and repair contractors.",cols:"1.4fr 1.1fr 1fr 1.4fr 90px",
     fields:[{k:"name",l:"Vendor name",req:1},{k:"kind",l:"Type",t:"select",o:()=>VENDOR_KINDS},{k:"phone",l:"Phone"},{k:"contact",l:"Contact person"},{k:"notes",l:"Address / notes",full:1}],
     show:[["Vendor",v=>v.name],["Type",v=>v.kind],["Phone",v=>v.phone],["Contact",v=>v.contact]],
@@ -841,7 +841,7 @@ const MASTERS={
     show:[["Category",c=>c.name],["Assets",c=>[...S.assets.values()].filter(a=>a.category===c.name).length]],
     list:()=>entries(S.categories).sort((a,b)=>(a.order??99)-(b.order??99)||ncmp(a.name,b.name)),
     dup:(b,id)=>entries(S.categories).find(c=>c.id!==id&&c.name.toLowerCase()===b.name.toLowerCase())&&`${b.name} already exists.`,
-    inUse:c=>{const n=[...S.assets.values()].filter(a=>a.category===c.name).length;return n&&`${n} assets are in this category.`;},
+    inUse:c=>{const n=[...S.assets.values()].filter(a=>a.category===c.name).length;return n&&`${n===1?"1 asset is":n+" assets are"} in this category.`;},
     rename:"category"},
   reasons:{label:"Movement reasons",one:"reason",coll:"reasons",hint:"Each reason can set the status and destination for you when logging a move.",cols:"1.5fr 1fr 1.5fr 90px",
     fields:[{k:"name",l:"Reason",req:1},{k:"statusAfter",l:"Sets status to",t:"select",o:()=>[{v:"",t:"Choose each time"},...STATUSES.map(s=>({v:s,t:s}))]},{k:"dest",l:"Destination",t:"select",o:()=>DEST_OPTS.map(([v,t])=>({v,t}))}],
@@ -878,12 +878,12 @@ function renderMasters(){
   if(!list.length){$("masterList").innerHTML=`<div class="list"><div class="empty">${M.list().length?"Nothing matches your search.":`No ${M.label.toLowerCase()} yet.`}${S.master==="rooms"&&!M.list().length?" Use “Bulk add rooms” to add a whole floor at once.":""}</div></div>`;return}
   const cols=[{h:"#",cls:"num",v:x=>""},
     ...M.show.map(([l,f],i)=>({h:l,cls:i===0?"t-main":"",v:x=>{const v=f(x);return typeof v==="number"?`<span class="rnum">${v}</span>`:esc(v===""||v==null?"—":v);}})),
-    {h:"",cls:"t-act",v:x=>S.canWrite?`<button class="btn small" type="button" data-editmaster="${esc(x.id)}">Edit</button>`:""}];
+    {h:"",cls:"t-act",v:x=>S.canWrite?`<span class="rowacts"><button class="btn small" type="button" data-editmaster="${esc(x.id)}">Edit</button><button class="btn small danger" type="button" data-delmaster="${esc(x.id)}">Delete</button></span>`:""}];
   const cardOf=MCARD[S.master];
   const cards=list.map(x=>{const c=cardOf(x);return `<div class="acard ${c.stripe||"st-accent"}">
       <div class="ac-top"><span class="ac-name">${esc(c.title)}</span>${c.badge||""}</div>
       ${c.sub?`<div class="ac-loc">${c.sub}</div>`:""}
-      <div class="ac-foot"><span class="sub">${c.meta||"&nbsp;"}</span>${S.canWrite?`<button class="btn small" type="button" data-editmaster="${esc(x.id)}">Edit</button>`:""}</div>
+      <div class="ac-foot"><span class="sub">${c.meta||"&nbsp;"}</span>${S.canWrite?`<span class="rowacts"><button class="btn small" type="button" data-editmaster="${esc(x.id)}">Edit</button><button class="btn small danger" type="button" data-delmaster="${esc(x.id)}">Delete</button></span>`:""}</div>
     </div>`;}).join("");
   $("masterList").innerHTML=`<div class="desk-only">${tableHTML(cols,list,x=>x.active==="No"?` class="inactive"`:"")}</div><div class="acards">${cards}</div>`;
 }
@@ -916,11 +916,12 @@ $("formMaster").addEventListener("submit",async e=>{e.preventDefault();if(!needD
     closeDlg("dlgMaster");toast("Saved");
   }catch(err){$("masterErr").textContent=errText(err);}finally{$("btnSaveMaster").disabled=false;}
 });
-$("btnDelMaster").addEventListener("click",async()=>{if(!needDb())return;const M=MASTERS[S.master];const x={id:editingMaster,...S[M.coll].get(editingMaster)};
-  const u=M.inUse&&M.inUse(x);if(u){$("masterErr").textContent=u;return}
-  if(!await confirmBox(`Delete ${M.one}?`,`${x.name||x.number} will be removed from ${M.label}. Past movements are not affected.`,"Delete"))return;
-  try{await S.db.doc(M.coll+"/"+editingMaster).delete();closeDlg("dlgMaster");toast("Deleted");}catch(err){$("masterErr").textContent=errText(err);}
-});
+async function delMaster(id,showErr){if(!needDb())return false;const M=MASTERS[S.master];const x={id,...S[M.coll].get(id)};
+  const u=M.inUse&&M.inUse(x);if(u){showErr(u);return false}
+  if(!await confirmBox(`Delete ${M.one}?`,`${x.name||x.number} will be removed from ${M.label}. Past movements are not affected.`,"Delete"))return false;
+  try{await S.db.doc(M.coll+"/"+id).delete();toast("Deleted");return true;}catch(err){showErr(errText(err));return false;}
+}
+$("btnDelMaster").addEventListener("click",async()=>{if(await delMaster(editingMaster,t=>$("masterErr").textContent=t))closeDlg("dlgMaster");});
 
 /* bulk rooms */
 opts($("kFloor"),FLOORS);opts($("kType"),ROOM_TYPES);
@@ -1107,13 +1108,15 @@ $("formBlock").addEventListener("submit",async e=>{e.preventDefault();if(!needDb
     closeDlg("dlgBlock");toast("Saved");
   }catch(err){$("blockErr").textContent=errText(err);}
 });
-$("btnDelBlock").addEventListener("click",async()=>{if(!needDb())return;
-  const n=[...S.assets.values()].filter(a=>a.blockId===editingBlock).length,r=roomsOf(editingBlock).length;
-  if(n){$("blockErr").textContent=`${n} assets are still here. Move them out before deleting this location.`;return}
-  if(r){$("blockErr").textContent=`${r} rooms belong to this block. Delete them in Masters → Rooms first.`;return}
-  if(!await confirmBox("Delete location?",`${bname(editingBlock)} will be removed.`,"Delete"))return;
-  try{await S.db.doc("blocks/"+editingBlock).delete();closeDlg("dlgBlock");}catch(err){$("blockErr").textContent=errText(err);}
-});
+async function delBlock(id,showErr){if(!needDb())return false;
+  const n=[...S.assets.values()].filter(a=>a.blockId===id).length,rooms=roomsOf(id);
+  if(n){showErr(`${n} asset${n===1?" is":"s are"} still in ${bname(id)}. Move ${n===1?"it":"them"} out before deleting this block.`);return false}
+  const msg=rooms.length?`${bname(id)} and its ${rooms.length} room${rooms.length===1?"":"s"} will be removed. Past movements are not affected.`:`${bname(id)} will be removed. Past movements are not affected.`;
+  if(!await confirmBox("Delete block?",msg,"Delete"))return false;
+  try{for(const r of rooms)await S.db.doc("rooms/"+r.id).delete();await S.db.doc("blocks/"+id).delete();if(S.block===id)S.block="all";toast("Block deleted");return true;}
+  catch(err){showErr(errText(err));return false;}
+}
+$("btnDelBlock").addEventListener("click",async()=>{if(await delBlock(editingBlock,t=>$("blockErr").textContent=t))closeDlg("dlgBlock");});
 
 /* ---------- clear samples ---------- */
 $("btnClearSamples").addEventListener("click",async()=>{if(!needDb())return;
@@ -1140,7 +1143,7 @@ $("btnExport").addEventListener("click",async()=>{
 
 /* ---------- delegated clicks ---------- */
 document.addEventListener("click",e=>{
-  const t=e.target.closest("[data-go],[data-move],[data-asset],[data-block],[data-viewblock],[data-editblock],[data-master],[data-editmaster],.tile");if(!t)return;
+  const t=e.target.closest("[data-delmaster],[data-delblock],[data-go],[data-move],[data-asset],[data-block],[data-viewblock],[data-editblock],[data-master],[data-editmaster],.tile");if(!t)return;
   if(t.dataset.move){e.stopPropagation();openMove(t.dataset.move);return}
   if(t.dataset.asset){openAsset(t.dataset.asset);return}
   if(t.dataset.block){S.block=t.dataset.block;render();return}
@@ -1149,6 +1152,8 @@ document.addEventListener("click",e=>{
   if(t.dataset.master){location.hash="#masters-"+t.dataset.master;return}
   if(t.dataset.go){const g=t.dataset.go;if(g==="act:addAsset")openAsset(null);else if(g==="act:move")openMove(null);else if(g==="act:export"){location.hash="#movements";setTimeout(()=>$("btnExport").click(),50);}return}
   if(t.dataset.editmaster){openMaster(t.dataset.editmaster);return}
+  if(t.dataset.delmaster){delMaster(t.dataset.delmaster,toast);return}
+  if(t.dataset.delblock){delBlock(t.dataset.delblock,toast);return}
   if(t.classList.contains("tile")){const a=t.dataset.act;if(a==="#moves"){location.hash="#movements";$("mRange").value="7";renderMoves();}else{location.hash="#assets";$("fStatus").value=a;renderAssets();}}
 });
 $("deskAdd").addEventListener("click",()=>{if(S.tab==="assets")openAsset(null);else if(S.tab==="blocks")openBlock(null);else if(S.tab==="masters")openMaster(null);else if(S.tab==="movements")openMove(null);});
