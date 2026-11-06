@@ -350,6 +350,18 @@ try {
             out(['ok' => true]);
         }
 
+        case 'seed': {
+            // Allowed for a signed-in Admin, or for the deploy workflow using a key derived from DB_PASS.
+            $key = (string) ($_GET['key'] ?? '');
+            $u = currentUser();
+            $okKey = $key !== '' && hash_equals(hash_hmac('sha256', 'asset-tracker-seed', DB_PASS), $key);
+            if (!$okKey && (!$u || $u['role'] !== 'Admin')) {
+                fail('forbidden', 'Only an Admin can load sample data.', 403);
+            }
+            require __DIR__ . '/seed.php';
+            out(['added' => seedSample(db())]);
+        }
+
         default:
             fail('invalid_argument', 'Unknown action.', 404);
     }

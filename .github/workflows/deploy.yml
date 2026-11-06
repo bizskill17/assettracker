@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      load_sample_data:
+        description: "Load sample data (Block A–D) after deploying"
+        type: boolean
+        default: false
 
 concurrency:
   group: deploy-hostinger
@@ -96,3 +101,14 @@ jobs:
               ftpcmd "rm -r -f public_html;" && echo "Removed the misplaced nested public_html/ copy"
             fi
           fi
+
+      # Loads sample data when run manually with "Load sample data" ticked,
+      # or when the pushed commit message contains [seed]. Safe to repeat.
+      - name: Load sample data
+        if: env.FTP_SERVER != '' && (inputs.load_sample_data || contains(github.event.head_commit.message, '[seed]'))
+        env:
+          DB_PASS: ${{ secrets.DB_PASS }}
+          SITE_URL: ${{ vars.SITE_URL || 'https://assettracker.bizskilledu.com' }}
+        run: |
+          KEY=$(python3 -c "import hmac,hashlib,os;print(hmac.new(os.environ['DB_PASS'].encode(),b'asset-tracker-seed',hashlib.sha256).hexdigest())")
+          curl -fsS --max-time 60 "$SITE_URL/api/index.php?a=seed&key=$KEY"; echo

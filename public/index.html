@@ -184,6 +184,9 @@ textarea{resize:vertical;min-height:60px}
 .fbtn{display:none;position:relative;flex:0 0 auto;width:42px;border:1px solid var(--line);background:var(--surface);border-radius:8px;cursor:pointer;color:var(--ink);place-items:center}
 .fbtn svg{width:20px;height:20px}
 .fbtn[aria-expanded="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.fclr{display:grid;flex:0 0 auto;width:42px;border:1px solid var(--line);background:var(--surface);border-radius:8px;cursor:pointer;color:var(--bad);place-items:center}
+.fclr:hover{border-color:var(--bad);background:var(--bad-bg)}
+.fclr svg{width:20px;height:20px}
 .fbadge{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--bad);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center}
 .vh{position:absolute!important;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden}
 select.ss-native{display:none!important}
@@ -405,7 +408,7 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
 
   <section id="view-assets" hidden>
     <div class="filters" id="filtA">
-      <div class="srow"><input type="search" id="q" placeholder="Search tag, item or room…" aria-label="Search assets"><button class="fbtn" type="button" data-ftoggle="filtA" aria-expanded="false" aria-label="Show filters"><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg><span class="fbadge" hidden></span></button></div>
+      <div class="srow"><input type="search" id="q" placeholder="Search tag, item or room…" aria-label="Search assets"><button class="fbtn" type="button" data-ftoggle="filtA" aria-expanded="false" aria-label="Show filters"><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg><span class="fbadge" hidden></span></button><button class="fclr" type="button" data-fclear="filtA" aria-label="Clear search and filters" title="Clear filters" hidden><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/><path d="M16 16l5 5M21 16l-5 5"/></svg></button></div>
       <div class="fpanel">
         <select id="fBlockA" class="mob-only" aria-label="Block"></select>
         <select id="fCat" aria-label="Category"></select>
@@ -418,7 +421,7 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
 
   <section id="view-movements" hidden>
     <div class="filters" id="filtM">
-      <div class="srow"><input type="search" id="mq" placeholder="Search tag, item, person, vendor…" aria-label="Search movements"><button class="fbtn" type="button" data-ftoggle="filtM" aria-expanded="false" aria-label="Show filters"><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg><span class="fbadge" hidden></span></button></div>
+      <div class="srow"><input type="search" id="mq" placeholder="Search tag, item, person, vendor…" aria-label="Search movements"><button class="fbtn" type="button" data-ftoggle="filtM" aria-expanded="false" aria-label="Show filters"><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg><span class="fbadge" hidden></span></button><button class="fclr" type="button" data-fclear="filtM" aria-label="Clear search and filters" title="Clear filters" hidden><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/><path d="M16 16l5 5M21 16l-5 5"/></svg></button></div>
       <div class="fpanel">
       <select id="fBlockM" class="mob-only" aria-label="Block"></select>
       <select id="mReason" aria-label="Reason"></select>
@@ -1177,10 +1180,15 @@ function errText(e){const c=e&&e.code;
 /* ---------- filter toggle (phones/tablets) ---------- */
 document.addEventListener("click",e=>{const b=e.target.closest("[data-ftoggle]");if(!b)return;
   const f=$(b.dataset.ftoggle),open=!f.classList.contains("fopen");f.classList.toggle("fopen",open);b.setAttribute("aria-expanded",String(open));});
+document.addEventListener("click",e=>{const b=e.target.closest("[data-fclear]");if(!b)return;
+  if(b.dataset.fclear==="filtA"){$("q").value="";$("fCat").value="";$("fStatus").value="";}
+  else{$("mq").value="";$("mReason").value="";$("mRange").value="30";}
+  S.block="all";render();});
 function updateBadges(){
   const nA=(S.block!=="all")+!!$("fCat").value+!!$("fStatus").value;
   const nM=(S.block!=="all")+!!$("mReason").value+($("mRange").value!=="30");
-  for(const [id,n] of [["filtA",nA],["filtM",nM]]){const bd=$(id).querySelector(".fbadge");bd.textContent=n;bd.hidden=!n;}
+  for(const [id,n,q] of [["filtA",nA,"q"],["filtM",nM,"mq"]]){const bd=$(id).querySelector(".fbadge");bd.textContent=n;bd.hidden=!n;
+    $(id).querySelector(".fclr").hidden=!(n||$(q).value.trim());}
 }
 
 /* ---------- searchable dropdowns ----------
