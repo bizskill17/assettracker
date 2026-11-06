@@ -867,7 +867,7 @@ function renderMasters(){
   const showMenu=mobile&&!S.masterOpen;
   $("masterMenu").hidden=!showMenu;$("masterDetail").hidden=showMenu;
   $("masterMenu").innerHTML=[...Object.entries(MASTERS).map(([k,m])=>[`#masters-${k}`,k,m.label,m.hint,S[m.coll].size]),["#blocks","blocks","Blocks","Hostel blocks.",S.blocks.size]]
-    .map(([href,i,l,h,n])=>`<a class="mitem" href="${href}"><span class="ico">${ICO[i]}</span><span class="grow"><b>${esc(l)}</b> <span class="sub">(${n})</span><div class="sub">${esc(h)}</div></span><span class="chev">›</span></a>`).join("");
+    .map(([href,i,l,h,n])=>`<a class="mitem" href="${href}"><span class="ico">${ICO[i]}</span><span class="grow"><b>${esc(l)}</b> <span class="sub">(${n})</span></span><span class="chev">›</span></a>`).join("");
   $("masterChips").innerHTML=Object.entries(MASTERS).map(([k,m])=>`<button class="bchip" type="button" data-master="${k}" aria-pressed="${S.master===k}">${esc(m.label)} <b>${S[m.coll].size}</b></button>`).join("")+
     `<a class="bchip" href="#blocks" style="text-decoration:none;color:inherit">Blocks <b>${S.blocks.size}</b></a>`;
   const M=MASTERS[S.master];$("btnBulkRooms").hidden=!(S.master==="rooms"&&S.canWrite);
