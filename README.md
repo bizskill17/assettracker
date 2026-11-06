@@ -23,12 +23,12 @@ public/                 ← uploaded to your site's public_html
 2. Create a database and a database user, and note all three: database name, user and password. On Hostinger they look like `u123456789_assets`.
 3. You don't need to run any SQL. The tables are created automatically the first time the app opens.
 
-### 2. Create an FTP account for deployments (hPanel)
-1. Go to **Files → FTP Accounts → Create a New FTP Account**.
-2. Set **Directory** to the site's `public_html`. Choose a username and a strong password.
-3. Note the **FTP host**, shown under FTP Access (for example `ftp.yourdomain.com` or an IP address).
+### 2. Get the FTP details (hPanel)
+1. Go to **Files → FTP Accounts**. Under **FTP Access**, note the FTP IP (hostname) and the FTP username.
+2. If you don't know the FTP password, click **Change FTP password** and set a new one.
+3. Files are uploaded into `public_html/`, the "Folder to upload files" shown on that page.
 
-> If you use the main FTP account instead, its root is above `public_html`. In that case add a repository **variable** `FTP_SERVER_DIR` with the path to the site folder, for example `domains/yourdomain.com/public_html/` (note the trailing slash).
+> If your FTP login opens directly inside `public_html`, add a repository **variable** `FTP_SERVER_DIR` with the value `./`.
 
 ### 3. Add GitHub secrets
 In this repo, go to **Settings → Secrets and variables → Actions → New repository secret** and add:
