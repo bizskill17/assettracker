@@ -773,11 +773,10 @@ optsMulti($("fStatus"),STATUSES);opts($("aStatus"),STATUSES);opts($("mStatusIn")
 
 /* picker = select from master + "Other (type it)" */
 function setPicker(sel,inp,list,value){
-  const has=list.some(o=>o.v===value);
-  sel.innerHTML=`<option value="">— Select —</option>`+list.map(o=>`<option value="${esc(o.v)}">${esc(o.t)}</option>`).join("")+`<option value="__other">Other (type it)…</option>`;
-  if(value&&has){sel.value=value;inp.hidden=true;inp.value="";}
-  else if(value||!list.length){sel.value="__other";inp.hidden=false;inp.value=value||"";}
-  else{sel.value="";inp.hidden=true;inp.value="";}
+  // Pick from the master list only. A saved value that isn't in the list (older data) is kept as its own option.
+  const all=value&&!list.some(o=>o.v===value)?[...list,{v:value,t:value}]:list;
+  sel.innerHTML=`<option value="">— Select —</option>`+all.map(o=>`<option value="${esc(o.v)}">${esc(o.t)}</option>`).join("");
+  sel.value=value||"";inp.hidden=true;inp.value="";
 }
 function pickerVal(sel,inp){return sel.value==="__other"?inp.value.trim():sel.value;}
 function wirePicker(sel,inp){sel.addEventListener("change",()=>{inp.hidden=sel.value!=="__other";if(!inp.hidden)inp.focus();});}
