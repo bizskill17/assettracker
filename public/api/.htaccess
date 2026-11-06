@@ -1,0 +1,5 @@
+# Only the API entry point is reachable from the web.
+<FilesMatch "^(config|config\.sample|install)\.php$">
+  Require all denied
+</FilesMatch>
+Options -Indexes

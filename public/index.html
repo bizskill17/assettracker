@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hostel Asset Movement Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a warden's ledger — summary strip, then one working list per tab; rows become cards on phones. */
+:root{
+  --paper:#f4f5f1;
+  --surface:#ffffff;
+  --ink:#1c2630;
+  --muted:#5d6a73;
+  --line:#dde1db;
+  --accent:#1f5f8b;
+  --accent-ink:#ffffff;
+  --accent-soft:#e3edf5;
+  --ok:#2c7a4b; --ok-bg:#e2f2e8;
+  --warn:#9a6100; --warn-bg:#fbefd6;
+  --bad:#b23a32; --bad-bg:#f8e3e0;
+  --idle:#4f5d68; --idle-bg:#e8ebee;
+  --display:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif;
+  --body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#12171c; --surface:#1a2128; --ink:#e6ebee; --muted:#9aa7b0; --line:#2b353e;
+    --accent:#6fb0de; --accent-ink:#0d1a24; --accent-soft:#1d3142;
+    --ok:#6cc890; --ok-bg:#183326; --warn:#e8b55a; --warn-bg:#352a14;
+    --bad:#ee8a80; --bad-bg:#3a1f1c; --idle:#a9b5be; --idle-bg:#252e36;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#12171c; --surface:#1a2128; --ink:#e6ebee; --muted:#9aa7b0; --line:#2b353e;
+  --accent:#6fb0de; --accent-ink:#0d1a24; --accent-soft:#1d3142;
+  --ok:#6cc890; --ok-bg:#183326; --warn:#e8b55a; --warn-bg:#352a14;
+  --bad:#ee8a80; --bad-bg:#3a1f1c; --idle:#a9b5be; --idle-bg:#252e36;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font:15px/1.45 var(--body);}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:.01em}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 20px 60px;display:flex;flex-direction:column;gap:18px}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+header.top h1{font-size:28px;font-weight:700}
+header.top p{margin:2px 0 0;color:var(--muted);font-size:14px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;cursor:pointer;font-weight:500;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:hover{filter:brightness(1.07)}
+.btn.small{padding:5px 10px;font-size:13px}
+.btn.danger{color:var(--bad)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.notice{border:1px solid var(--line);background:var(--surface);border-left:4px solid var(--warn);border-radius:8px;padding:10px 14px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;font-size:14px}
+.notice[hidden]{display:none}
+
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;cursor:pointer;text-align:left}
+.tile:hover{border-color:var(--accent)}
+.tile .n{font-family:var(--display);font-size:28px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.1}
+.tile .l{font-size:13px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+
+.blockstrip{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px}
+.bchip{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:13px;cursor:pointer;display:flex;gap:6px;align-items:center}
+.bchip b{font-variant-numeric:tabular-nums}
+.bchip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+
+nav.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+nav.tabs a{padding:10px 14px;text-decoration:none;color:var(--muted);font-weight:600;border-bottom:3px solid transparent;margin-bottom:-1px;font-family:var(--display);font-size:16px}
+nav.tabs a[aria-current="page"]{color:var(--ink);border-bottom-color:var(--accent)}
+
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.filters input[type=search]{flex:1 1 220px}
+input,select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
+textarea{resize:vertical;min-height:60px}
+.count{color:var(--muted);font-size:13px;margin-left:auto}
+
+.list{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.row{display:grid;grid-template-columns:110px minmax(160px,1.6fr) minmax(140px,1.3fr) 120px 110px 150px;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row.head{background:var(--paper);font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.row.click{cursor:pointer}
+.row.click:hover{background:var(--accent-soft)}
+.tag{font-family:var(--mono);font-size:13px;color:var(--accent)}
+.sub{color:var(--muted);font-size:13px}
+.loc b{font-weight:600}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.s-inuse{color:var(--ok);background:var(--ok-bg)}
+.s-store{color:var(--idle);background:var(--idle-bg)}
+.s-repair{color:var(--warn);background:var(--warn-bg)}
+.s-missing,.s-disposed{color:var(--bad);background:var(--bad-bg)}
+.rowacts{display:flex;gap:6px;justify-content:flex-end}
+.empty{padding:28px 16px;text-align:center;color:var(--muted)}
+
+.mrow{display:grid;grid-template-columns:120px minmax(180px,1.3fr) minmax(260px,2fr) minmax(140px,1fr);gap:12px;padding:10px 14px;border-top:1px solid var(--line);align-items:center}
+.mrow:first-child{border-top:0}
+.route{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.arrow{color:var(--muted)}
+.when{font-variant-numeric:tabular-nums;font-size:13px}
+
+.blocks{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.bcard{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.bcard h3{font-size:19px}
+.bar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--paper)}
+.bar span{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:4px 10px;font-size:12px;color:var(--muted)}
+.kind{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+
+/* overlay dialogs */
+.overlay{position:fixed;inset:0;background:rgba(10,16,22,.45);display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;z-index:20}
+.overlay[hidden]{display:none}
+.dialog{background:var(--surface);border-radius:12px;width:100%;max-width:560px;padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:0 20px 50px rgba(0,0,0,.25)}
+.dialog h2{font-size:22px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field label{font-size:13px;font-weight:600;color:var(--muted)}
+.field.full{grid-column:1/-1}
+.dfoot{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.dfoot .right{display:flex;gap:8px;margin-left:auto}
+.err{color:var(--bad);font-size:13px;min-height:1em}
+.fromto{background:var(--paper);border-radius:8px;padding:10px 12px;font-size:14px}
+.hist{display:flex;flex-direction:column;gap:0;max-height:300px;overflow-y:auto;border:1px solid var(--line);border-radius:8px}
+.hist div{padding:8px 12px;border-top:1px solid var(--line);font-size:13px}
+.hist div:first-child{border-top:0}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:8px;font-size:14px;z-index:30}
+.toast[hidden]{display:none}
+.mob{display:none}
+
+.mchips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.mgrid{display:grid;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}
+.mgrid:first-child{border-top:0}
+.mgrid.head{background:var(--paper);font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+.mgrid .num{font-variant-numeric:tabular-nums}
+.inactive{opacity:.55}
+.pick{display:flex;flex-direction:column;gap:6px}
+.pick input[hidden]{display:none}
+.hint{font-size:12px;color:var(--muted)}
+.progress{font-size:13px;color:var(--muted)}
+.side{display:none}
+.brand{font-family:var(--display);font-size:20px;font-weight:700;padding:4px 10px 12px;line-height:1.15}
+.brand span{display:block;font:500 12px/1.4 var(--body);color:var(--muted);margin-top:2px}
+.sgroup{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;padding:16px 10px 4px}
+.sitem{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;color:var(--ink);text-decoration:none;font-weight:500;cursor:pointer;background:none;border:0;width:100%;text-align:left;font-size:14px}
+.sitem:hover{background:var(--paper)}
+.sitem[aria-current="page"],.sitem[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.sitem b{font-weight:500;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
+.sitem.ssub{padding-left:24px;font-size:13px}
+.sideacts{display:flex;flex-direction:column;gap:6px;padding:0 4px 4px}
+.sideacts .btn{justify-content:center}
+.filters{margin-bottom:10px}
+.sech{display:flex;align-items:baseline;justify-content:space-between;margin:4px 2px 8px}
+.sech h2{font-size:18px}
+.sech a{color:var(--accent);font-size:14px;font-weight:600;text-decoration:none}
+.homecols{display:grid;grid-template-columns:1fr 1.4fr;gap:18px}
+.homecols > div{display:flex;flex-direction:column;min-width:0}
+.arow{display:flex;align-items:center;gap:10px;padding:10px 14px;border-top:1px solid var(--line);cursor:pointer}
+.arow:first-child{border-top:0}
+.arow:hover{background:var(--accent-soft)}
+.arow .grow{flex:1;min-width:0}
+.arow .grow div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rrow{padding:10px 14px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:2px}
+.rrow:first-child{border-top:0}
+.rrow .top1{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.appbar,.bnav,.mob-only{display:none}
+.mmenu .mitem{display:flex;align-items:center;gap:12px;padding:14px;border-top:1px solid var(--line);text-decoration:none;color:var(--ink)}
+.mmenu .mitem:first-child{border-top:0}
+.mmenu .mitem .grow{flex:1}
+.mmenu .mitem .ico{width:36px;height:36px;border-radius:10px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;flex:0 0 auto}
+.mmenu .chev{color:var(--muted);font-size:20px}
+svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+@media (min-width:1000px){
+  .shell{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100%}
+  .side{display:flex;flex-direction:column;gap:2px;position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--surface);border-right:1px solid var(--line);padding:18px 12px 24px}
+  header.top .actions{display:none}
+  .wrap{margin:0;padding:24px 28px 60px;max-width:1240px}
+}
+@media (max-width:999px){
+  header.top,.pageadd,#view-masters .mchips{display:none}
+  .mob-only{display:block}
+  .wrap{padding:0 14px calc(88px + env(safe-area-inset-bottom));gap:14px}
+  .appbar{display:flex;align-items:center;gap:6px;position:sticky;top:0;z-index:10;margin:0 -14px;padding:8px 8px;background:var(--surface);border-bottom:1px solid var(--line)}
+  .appbar h1{flex:1;font-size:19px;text-align:center}
+  .iconbtn{width:40px;height:40px;border:0;background:none;border-radius:10px;font-size:26px;line-height:1;cursor:pointer;color:var(--ink)}
+  .iconbtn:hover{background:var(--paper)}
+  .iconbtn[hidden]{display:block;visibility:hidden}
+  .homehead{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .hh-title{font-family:var(--display);font-size:22px;font-weight:700}
+  .homehead select{max-width:50%}
+  .tiles{grid-template-columns:repeat(3,1fr);gap:8px}
+  .tile{padding:10px;border-radius:12px}
+  .tile .n{font-size:22px}
+  .tile .l{font-size:12px;line-height:1.25}
+  .modgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px 6px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 8px}
+  .mod{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;cursor:pointer;color:var(--ink);font-size:12px;text-align:center;text-decoration:none;padding:4px 2px;line-height:1.2}
+  .mod .ico{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+  .homecols{grid-template-columns:1fr}
+  .filters{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .filters input[type=search]{grid-column:1/-1}
+  .filters .count{grid-column:1/-1;margin-left:0}
+  .filters select,.filters .btn{width:100%;justify-content:center}
+  .bnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--surface);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom));justify-content:space-around;align-items:flex-end}
+  .bnav a,.bnav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:600;color:var(--muted);text-decoration:none;background:none;border:0;cursor:pointer;padding:4px 0}
+  .bnav a[aria-current="page"]{color:var(--accent)}
+  .bnav .bmove span{width:52px;height:52px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;margin-top:-26px;box-shadow:0 6px 16px rgba(0,0,0,.18)}
+  .bnav .bmove{color:var(--accent)}
+  .overlay{padding:0;align-items:flex-end}
+  .dialog{border-radius:16px 16px 0 0;max-height:92vh;overflow-y:auto;padding-bottom:calc(20px + env(safe-area-inset-bottom))}
+  .notice{font-size:13px}
+}
+@media (max-width:820px){
+  .mgrid{grid-template-columns:1fr 1fr !important;gap:2px 10px}
+  .mgrid.head{display:none}
+  .mgrid > span[data-l]::before{content:attr(data-l) ": ";color:var(--muted);font-size:12px}
+  .mgrid > span:first-child{grid-column:1/-1;font-weight:600}
+  .mgrid > .rowacts{grid-column:1/-1;justify-content:flex-start}
+}
+@media (max-width:820px){
+  .row.head,.mrow.head{display:none}
+  .row{grid-template-columns:1fr auto;gap:4px 10px}
+  .row > .c-name{grid-column:1/2}
+  .row > .c-tag{grid-column:1/2;order:-1}
+  .row > .c-status{grid-column:2/3;grid-row:1/2;justify-self:end}
+  .row > .c-loc,.row > .c-cat{grid-column:1/-1}
+  .row > .c-acts{grid-column:1/-1;justify-content:flex-start}
+  .mrow{grid-template-columns:1fr;gap:4px}
+  .grid2{grid-template-columns:1fr}
+  .mob{display:inline}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside class="side" aria-label="Main menu">
+  <div class="brand">Asset Movement Tracker<span>Hostel · all blocks</span></div>
+  <div class="sideacts">
+    <button class="btn primary" id="sideMove" type="button">⇄ Log a movement</button>
+    <button class="btn" id="sideAdd" type="button">+ Add asset</button>
+  </div>
+  <div class="sgroup">Tracker</div>
+  <div id="sideNav"></div>
+  <div class="sgroup">Masters</div>
+  <div id="sideMasters"></div>
+  <div class="sgroup">Filter by block</div>
+  <div id="sideBlocks"></div>
+</aside>
+<div class="wrap">
+  <div class="appbar">
+    <button class="iconbtn" id="abBack" type="button" aria-label="Back">‹</button>
+    <h1 id="abTitle">Asset Tracker</h1>
+    <button class="iconbtn" id="abAdd" type="button" aria-label="Add">+</button>
+  </div>
+  <header class="top">
+    <div>
+      <h1 id="deskTitle">Dashboard</h1>
+      <p id="subtitle">Every bed, fan and fridge, where it is and how it got there.</p>
+    </div>
+    <div class="actions">
+      <button class="btn" id="btnAddAsset" type="button">+ Add asset</button>
+      <button class="btn primary" id="btnMove" type="button">⇄ Log a movement</button>
+    </div>
+  </header>
+
+  <div class="notice" id="statusNote" hidden></div>
+
+  <section id="view-home">
+    <div class="homehead mob-only">
+      <div class="hh-title">Hostel assets</div>
+      <select id="fBlockH" aria-label="Block"></select>
+    </div>
+    <section class="tiles" id="tiles" aria-label="Summary"></section>
+    <div class="modgrid mob-only" id="modGrid"></div>
+    <div class="notice" id="sampleNote" hidden>
+      <span>You're looking at sample data. Item types, categories and reasons are defaults you keep.</span>
+      <button class="btn small danger" id="btnClearSamples" type="button">Remove sample data</button>
+    </div>
+    <div class="homecols">
+      <div>
+        <div class="sech"><h2>Needs attention</h2><a href="#assets" id="attnAll">See all</a></div>
+        <div class="list" id="attnList"></div>
+      </div>
+      <div>
+        <div class="sech"><h2>Recent movements</h2><a href="#movements">See all</a></div>
+        <div class="list" id="recentList"></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="view-assets" hidden>
+    <div class="filters">
+      <input type="search" id="q" placeholder="Search tag, item or room…" aria-label="Search assets">
+      <select id="fBlockA" class="mob-only" aria-label="Block"></select>
+      <select id="fCat" aria-label="Category"></select>
+      <select id="fStatus" aria-label="Status"></select>
+      <span class="count" id="assetCount"></span>
+    </div>
+    <div class="list" id="assetList"></div>
+  </section>
+
+  <section id="view-movements" hidden>
+    <div class="filters">
+      <input type="search" id="mq" placeholder="Search tag, item, person, vendor…" aria-label="Search movements">
+      <select id="fBlockM" class="mob-only" aria-label="Block"></select>
+      <select id="mReason" aria-label="Reason"></select>
+      <select id="mRange" aria-label="Period">
+        <option value="7">Last 7 days</option>
+        <option value="30" selected>Last 30 days</option>
+        <option value="90">Last 90 days</option>
+        <option value="0">All time</option>
+      </select>
+      <button class="btn small" id="btnExport" type="button">Export CSV</button>
+      <span class="count" id="moveCount"></span>
+    </div>
+    <div class="list" id="moveList"></div>
+  </section>
+
+  <section id="view-blocks" hidden>
+    <div class="filters" style="margin-bottom:10px">
+      <span class="sub">Blocks, stores and workshops are all locations assets can move between.</span>
+      <button class="btn small pageadd" id="btnAddBlock" type="button" style="margin-left:auto">+ Add block / location</button>
+    </div>
+    <div class="blocks" id="blockCards"></div>
+  </section>
+
+  <section id="view-masters" hidden>
+    <div class="list mmenu" id="masterMenu" hidden></div>
+    <div id="masterDetail">
+    <div class="mchips" id="masterChips"></div>
+    <div class="filters" style="margin-bottom:10px">
+      <input type="search" id="xq" placeholder="Search…" aria-label="Search master">
+      <span class="sub" id="masterHint"></span>
+      <span class="actions" style="margin-left:auto">
+        <button class="btn small" id="btnBulkRooms" type="button" hidden>Bulk add rooms</button>
+        <button class="btn small primary pageadd" id="btnAddMaster" type="button">+ Add</button>
+      </span>
+    </div>
+    <div class="list" id="masterList"></div>
+    </div>
+  </section>
+</div>
+</div>
+
+<nav class="bnav" aria-label="Main">
+  <a href="#home" data-bn="home"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+  <a href="#assets" data-bn="assets"><svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg>Assets</a>
+  <button type="button" class="bmove" id="bnMove" aria-label="Log a movement"><span><svg viewBox="0 0 24 24"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg></span>Move</button>
+  <a href="#movements" data-bn="movements"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1"/></svg>Log</a>
+  <a href="#masters" data-bn="masters"><svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z"/></svg>Masters</a>
+</nav>
+
+<!-- Asset dialog -->
+<div class="overlay" id="dlgAsset" hidden>
+  <form class="dialog" id="formAsset" novalidate>
+    <h2 id="assetTitle">Add asset</h2>
+    <div class="grid2">
+      <div class="field"><label for="aType">Item type</label><select id="aType"></select></div>
+      <div class="field"><label for="aCat">Category</label><select id="aCat"></select></div>
+      <div class="field full"><label for="aName">Item description</label><input id="aName" required placeholder="e.g. Ceiling fan, Usha 48in"></div>
+      <div class="field"><label for="aBlock">Block / location</label><select id="aBlock"></select></div>
+      <div class="field"><label for="aRoomSel">Room / spot</label><div class="pick"><select id="aRoomSel"></select><input id="aRoom" placeholder="Type room or spot" hidden></div></div>
+      <div class="field"><label for="aTag">Asset tag</label><input id="aTag" required placeholder="e.g. A-FAN-014"><span class="hint" id="aTagHint"></span></div>
+      <div class="field"><label for="aStatus">Status</label><select id="aStatus"></select></div>
+      <div class="field"><label for="aCond">Condition</label><select id="aCond"><option>Good</option><option>Fair</option><option>Poor</option><option>Damaged</option></select></div>
+      <div class="field"><label for="aVendor">Supplier</label><select id="aVendor"></select></div>
+      <div class="field full"><label for="aNotes">Notes</label><textarea id="aNotes" placeholder="Serial no., purchase date, bill no.…"></textarea></div>
+    </div>
+    <div id="assetHistWrap" hidden>
+      <div class="field"><label>Movement history</label></div>
+      <div class="hist" id="assetHist"></div>
+    </div>
+    <div class="err" id="assetErr"></div>
+    <div class="dfoot">
+      <button class="btn danger" type="button" id="btnDelAsset" hidden>Delete asset</button>
+      <div class="right">
+        <button class="btn" type="button" data-close>Cancel</button>
+        <button class="btn primary" type="submit" id="btnSaveAsset">Save asset</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Move dialog -->
+<div class="overlay" id="dlgMove" hidden>
+  <form class="dialog" id="formMove" novalidate>
+    <h2>Log a movement</h2>
+    <div class="field"><label for="mAsset">Asset</label>
+      <input id="mAsset" list="assetOptions" placeholder="Type tag or item name" autocomplete="off">
+      <datalist id="assetOptions"></datalist>
+    </div>
+    <div class="fromto" id="mFrom">Pick an asset to see where it is now.</div>
+    <div class="grid2">
+      <div class="field"><label for="mReasonIn">Reason</label><select id="mReasonIn"></select></div>
+      <div class="field"><label for="mWhen">Date &amp; time</label><input id="mWhen" type="datetime-local"></div>
+      <div class="field"><label for="mToBlock">To block / location</label><select id="mToBlock"></select></div>
+      <div class="field"><label for="mRoomSel">To room / spot</label><div class="pick"><select id="mRoomSel"></select><input id="mToRoom" placeholder="Type room or spot" hidden></div></div>
+      <div class="field"><label for="mStatusIn">Status after move</label><select id="mStatusIn"></select></div>
+      <div class="field"><label for="mBySel">Handled by</label><div class="pick"><select id="mBySel"></select><input id="mBy" placeholder="Type name" hidden></div></div>
+      <div class="field full"><label for="mVendor">Vendor / contractor <span class="hint">(optional)</span></label><select id="mVendor"></select></div>
+      <div class="field full"><label for="mNotes">Notes</label><textarea id="mNotes" placeholder="Approval ref, gate pass no., student name…"></textarea></div>
+    </div>
+    <div class="err" id="moveErr"></div>
+    <div class="dfoot"><div class="right">
+      <button class="btn" type="button" data-close>Cancel</button>
+      <button class="btn primary" type="submit" id="btnSaveMove">Save movement</button>
+    </div></div>
+  </form>
+</div>
+
+<!-- Block dialog -->
+<div class="overlay" id="dlgBlock" hidden>
+  <form class="dialog" id="formBlock" novalidate>
+    <h2 id="blockTitle">Add block / location</h2>
+    <div class="grid2">
+      <div class="field"><label for="bName">Name</label><input id="bName" required placeholder="e.g. Block D"></div>
+      <div class="field"><label for="bCode">Short code</label><input id="bCode" maxlength="4" placeholder="e.g. D"><span class="hint">Starts every asset tag here, as in D-FAN-001</span></div>
+      <div class="field"><label for="bKind">Type</label><select id="bKind">
+        <option>Residential</option><option>Store</option><option>Repair</option><option>Common area</option></select></div>
+      <div class="field"><label for="bNote">Description</label><input id="bNote" placeholder="e.g. Girls' hostel, 3 floors"></div>
+    </div>
+    <div class="err" id="blockErr"></div>
+    <div class="dfoot">
+      <button class="btn danger" type="button" id="btnDelBlock" hidden>Delete</button>
+      <div class="right">
+        <button class="btn" type="button" data-close>Cancel</button>
+        <button class="btn primary" type="submit">Save</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Generic master dialog -->
+<div class="overlay" id="dlgMaster" hidden>
+  <form class="dialog" id="formMaster" novalidate>
+    <h2 id="masterTitle">Add</h2>
+    <div class="grid2" id="masterFields"></div>
+    <div class="err" id="masterErr"></div>
+    <div class="dfoot">
+      <button class="btn danger" type="button" id="btnDelMaster" hidden>Delete</button>
+      <div class="right">
+        <button class="btn" type="button" data-close>Cancel</button>
+        <button class="btn primary" type="submit" id="btnSaveMaster">Save</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Bulk rooms dialog -->
+<div class="overlay" id="dlgBulk" hidden>
+  <form class="dialog" id="formBulk" novalidate>
+    <h2>Bulk add rooms</h2>
+    <p class="sub" style="margin:0">Adds a numbered range of rooms in one go, for example 101 to 130 on the 1st floor. Rooms that already exist are skipped.</p>
+    <div class="grid2">
+      <div class="field"><label for="kBlock">Block</label><select id="kBlock"></select></div>
+      <div class="field"><label for="kFloor">Floor</label><select id="kFloor"></select></div>
+      <div class="field"><label for="kFrom">From room no.</label><input id="kFrom" type="number" inputmode="numeric" placeholder="101"></div>
+      <div class="field"><label for="kTo">To room no.</label><input id="kTo" type="number" inputmode="numeric" placeholder="130"></div>
+      <div class="field"><label for="kType">Room type</label><select id="kType"></select></div>
+      <div class="field"><label for="kCap">Beds per room</label><input id="kCap" type="number" inputmode="numeric" placeholder="2"></div>
+    </div>
+    <div class="progress" id="bulkProgress"></div>
+    <div class="err" id="bulkErr"></div>
+    <div class="dfoot"><div class="right">
+      <button class="btn" type="button" data-close>Cancel</button>
+      <button class="btn primary" type="submit" id="btnSaveBulk">Add rooms</button>
+    </div></div>
+  </form>
+</div>
+
+<!-- Confirm dialog -->
+<div class="overlay" id="dlgConfirm" hidden>
+  <div class="dialog" role="alertdialog" aria-labelledby="cTitle">
+    <h2 id="cTitle">Are you sure?</h2>
+    <p id="cText" style="margin:0"></p>
+    <div class="dfoot"><div class="right">
+      <button class="btn" type="button" data-close>Cancel</button>
+      <button class="btn primary" type="button" id="cOk">Confirm</button>
+    </div></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="hosted.js"></script>
+<script>
+/* ---------- fixed lists & defaults ---------- */
+const STATUSES=["In use","In store","Under repair","Missing","Disposed"];
+const STATUS_CLASS={"In use":"s-inuse","In store":"s-store","Under repair":"s-repair","Missing":"s-missing","Disposed":"s-disposed"};
+const STATUS_COLOR={"In use":"var(--ok)","In store":"var(--idle)","Under repair":"var(--warn)","Missing":"var(--bad)","Disposed":"var(--bad)"};
+const DEFAULT_CATS=["Furniture","Bedding","Electrical","Electronics","Kitchen & Mess","Sports","Cleaning","Other"];
+const DEFAULT_REASONS=[["Room allotment","In use",""],["Shifted between blocks","In use",""],["Sent for repair","Under repair","Repair"],["Returned from repair","In use",""],["Moved to store","In store","Store"],["Issued from store","In use",""],["Replacement","In use",""],["Reported missing","Missing","Same"],["Disposal","Disposed","Same"],["Other","",""]];
+const FLOORS=["Ground","1st","2nd","3rd","4th","5th","6th","Basement","Terrace"];
+const ROOM_TYPES=["Single","Double","Triple","Four-sharing","Dormitory","Washroom","Common room","Office","Kitchen","Store rack","Other"];
+const ROLES=["Admin","Warden","Asst. Warden","Maintenance","Store keeper","Office","Security","Housekeeping","Viewer","Other"];
+const VENDOR_KINDS=["Supplier","Repair contractor","Supplier & repair"];
+const DEST_OPTS=[["","Choose each time"],["Store","Send to the Store-type location"],["Repair","Send to the Repair-type location"],["Same","Stays where it is"]];
+
+const S={blocks:new Map(),assets:new Map(),moves:[],rooms:new Map(),staff:new Map(),itemTypes:new Map(),vendors:new Map(),categories:new Map(),reasons:new Map(),
+  block:"all",tab:"assets",master:"rooms",db:null,uid:null,canWrite:true,loaded:{}};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ncmp=(a,b)=>String(a??"").localeCompare(String(b??""),undefined,{numeric:true});
+const entries=m=>[...m.entries()].map(([id,x])=>({id,...x}));
+
+/* ---------- master-derived lists ---------- */
+function cats(){const l=entries(S.categories).sort((a,b)=>(a.order??99)-(b.order??99)||ncmp(a.name,b.name)).map(c=>c.name);return l.length?l:DEFAULT_CATS;}
+function reasons(){const l=entries(S.reasons).sort((a,b)=>(a.order??99)-(b.order??99)||ncmp(a.name,b.name));
+  return l.length?l:DEFAULT_REASONS.map(([name,statusAfter,dest])=>({name,statusAfter,dest}));}
+function reasonByName(n){return reasons().find(r=>r.name===n);}
+function blockList(){return entries(S.blocks).sort((a,b)=>(a.order??99)-(b.order??99)||ncmp(a.name,b.name));}
+function bname(id){return S.blocks.get(id)?.name||"Unassigned";}
+function roomsOf(bid){return entries(S.rooms).filter(r=>r.blockId===bid).sort((a,b)=>ncmp(a.number,b.number));}
+function activeStaff(){return entries(S.staff).filter(s=>s.active!=="No").sort((a,b)=>ncmp(a.name,b.name));}
+function vendorList(kindFilter){return entries(S.vendors).filter(v=>!kindFilter||v.kind===kindFilter||v.kind==="Supplier & repair").sort((a,b)=>ncmp(a.name,b.name));}
+function itemTypeList(){return entries(S.itemTypes).sort((a,b)=>ncmp(a.name,b.name));}
+
+function opts(sel,list,first){const keep=sel.value;sel.innerHTML=(first!=null?`<option value="">${esc(first)}</option>`:"")+list.map(v=>typeof v==="string"?`<option>${esc(v)}</option>`:`<option value="${esc(v.v)}">${esc(v.t)}</option>`).join("");
+  if([...sel.options].some(o=>o.value===keep))sel.value=keep;}
+function refreshOptions(){opts($("fCat"),cats(),"All categories");opts($("mReason"),reasons().map(r=>r.name),"All reasons");}
+opts($("fStatus"),STATUSES,"All statuses");opts($("aStatus"),STATUSES);opts($("mStatusIn"),STATUSES);
+
+/* picker = select from master + "Other (type it)" */
+function setPicker(sel,inp,list,value){
+  const has=list.some(o=>o.v===value);
+  sel.innerHTML=`<option value="">— Select —</option>`+list.map(o=>`<option value="${esc(o.v)}">${esc(o.t)}</option>`).join("")+`<option value="__other">Other (type it)…</option>`;
+  if(value&&has){sel.value=value;inp.hidden=true;inp.value="";}
+  else if(value||!list.length){sel.value="__other";inp.hidden=false;inp.value=value||"";}
+  else{sel.value="";inp.hidden=true;inp.value="";}
+}
+function pickerVal(sel,inp){return sel.value==="__other"?inp.value.trim():sel.value;}
+function wirePicker(sel,inp){sel.addEventListener("change",()=>{inp.hidden=sel.value!=="__other";if(!inp.hidden)inp.focus();});}
+wirePicker($("aRoomSel"),$("aRoom"));wirePicker($("mRoomSel"),$("mToRoom"));wirePicker($("mBySel"),$("mBy"));
+const roomOpts=bid=>roomsOf(bid).map(r=>({v:r.number,t:r.number+(r.type?` · ${r.type}`:"")}));
+
+function fmtWhen(ms){if(!ms)return"—";const d=new Date(ms);return d.toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"})+", "+d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});}
+function fmtDay(ms){if(!ms)return"—";return new Date(ms).toLocaleDateString(undefined,{day:"numeric",month:"short"});}
+function pill(s){return `<span class="pill ${STATUS_CLASS[s]||"s-store"}">${esc(s)}</span>`;}
+function toast(t){const el=$("toast");el.textContent=t;el.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>el.hidden=true,2600);}
+function note(t){const el=$("statusNote");if(!t){el.hidden=true;return}el.textContent=t;el.hidden=false;}
+
+/* ---------- rendering ---------- */
+function renderSide(){
+  const tabs=[["home","Dashboard",""],["assets","Assets",S.assets.size],["movements","Movement log",S.moves.length],["blocks","Blocks",S.blocks.size]];
+  $("sideNav").innerHTML=tabs.map(([k,l,n])=>`<a class="sitem" href="#${k}" data-tab="${k}" aria-current="${S.tab===k?"page":"false"}">${esc(l)} <b>${n}</b></a>`).join("");
+  $("sideMasters").innerHTML=Object.entries(MASTERS).map(([k,m])=>`<button class="sitem ssub" type="button" data-master="${k}" aria-pressed="${S.tab==="masters"&&S.master===k}">${esc(m.label)} <b>${S[m.coll].size}</b></button>`).join("");
+  const counts={};for(const a of S.assets.values())counts[a.blockId]=(counts[a.blockId]||0)+1;
+  $("sideBlocks").innerHTML=[{id:"all",name:"All blocks",n:S.assets.size},...blockList().map(b=>({id:b.id,name:b.name,n:counts[b.id]||0}))]
+    .map(b=>`<button class="sitem" type="button" data-block="${esc(b.id)}" aria-pressed="${S.block===b.id}">${esc(b.name)} <b>${b.n}</b></button>`).join("");
+}
+function render(){refreshOptions();renderSide();renderTiles();renderStrip();renderHome();renderAssets();renderMoves();renderBlocks();renderMasters();
+  const anySample=[S.blocks,S.assets,S.rooms,S.staff,S.vendors].some(m=>[...m.values()].some(x=>x.sample));
+  $("sampleNote").hidden=!(anySample&&S.canWrite);
+}
+function scopedAssets(){return entries(S.assets).filter(a=>S.block==="all"||a.blockId===S.block);}
+function renderTiles(){
+  const list=scopedAssets();const c=s=>list.filter(a=>a.status===s).length;
+  const week=Date.now()-7*864e5;
+  const mv=S.moves.filter(m=>m.at>=week&&(S.block==="all"||m.toBlockId===S.block||m.fromBlockId===S.block)).length;
+  const t=[["Total assets",list.length,null,""],["In use",c("In use"),"var(--ok)","In use"],["In store",c("In store"),"var(--idle)","In store"],["Under repair",c("Under repair"),"var(--warn)","Under repair"],["Missing",c("Missing"),"var(--bad)","Missing"],["Moves, last 7 days",mv,"var(--accent)","#moves"]];
+  $("tiles").innerHTML=t.map(([l,n,col,act])=>`<button class="tile" type="button" data-act="${esc(act)}"><span class="n">${n}</span><span class="l">${col?`<span class="dot" style="background:${col}"></span>`:""}${esc(l)}</span></button>`).join("");
+}
+function renderStrip(){
+  const counts={};for(const a of S.assets.values())counts[a.blockId]=(counts[a.blockId]||0)+1;
+  const items=[{id:"all",name:"All blocks",n:S.assets.size},...blockList().map(b=>({id:b.id,name:b.name,n:counts[b.id]||0}))];
+  const html=items.map(b=>`<option value="${esc(b.id)}">${esc(b.name)} (${b.n})</option>`).join("");
+  for(const id of ["fBlockH","fBlockA","fBlockM"]){$(id).innerHTML=html;$(id).value=S.block;}
+  $("subtitle").textContent=S.block==="all"?"Every bed, fan and fridge, where it is and how it got there.":`Showing ${bname(S.block)} only.`;
+}
+const ICO={
+  assets:'<svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg>',
+  add:'<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  move:'<svg viewBox="0 0 24 24"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg>',
+  log:'<svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h1M3 12h1M3 18h1"/></svg>',
+  blocks:'<svg viewBox="0 0 24 24"><path d="M4 21V5l8-3 8 3v16M9 21v-4h6v4M8 8h1M15 8h1M8 12h1M15 12h1"/></svg>',
+  rooms:'<svg viewBox="0 0 24 24"><path d="M5 21V3h11l3 2v16M3 21h18M13 12h.01"/></svg>',
+  staff:'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>',
+  itemTypes:'<svg viewBox="0 0 24 24"><path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1"/></svg>',
+  vendors:'<svg viewBox="0 0 24 24"><path d="M2 6h12v10H2zM14 10h4l4 4v2h-8M6 19a2 2 0 1 0 0-.1M18 19a2 2 0 1 0 0-.1"/></svg>',
+  categories:'<svg viewBox="0 0 24 24"><path d="M3 6h7l2 2h9v11H3z"/></svg>',
+  reasons:'<svg viewBox="0 0 24 24"><path d="M5 21V4M5 4h12l-2 4 2 4H5"/></svg>',
+  export:'<svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 19h16"/></svg>'};
+function renderHome(){
+  const mods=[["Add asset","add","act:addAsset"],["Log move","move","act:move"],["Assets","assets","#assets"],["Movement log","log","#movements"],
+    ["Blocks","blocks","#blocks"],["Rooms","rooms","#masters-rooms"],["Users","staff","#masters-staff"],["Item types","itemTypes","#masters-itemTypes"],
+    ["Vendors","vendors","#masters-vendors"],["Categories","categories","#masters-categories"],["Reasons","reasons","#masters-reasons"],["Export","export","act:export"]];
+  $("modGrid").innerHTML=mods.map(([l,i,go])=>go.startsWith("#")?`<a class="mod" href="${go}"><span class="ico">${ICO[i]}</span>${esc(l)}</a>`:`<button class="mod" type="button" data-go="${go}"><span class="ico">${ICO[i]}</span>${esc(l)}</button>`).join("");
+  const attn=scopedAssets().filter(a=>a.status==="Under repair"||a.status==="Missing").sort((a,b)=>(b.lastMovedAt||0)-(a.lastMovedAt||0));
+  $("attnList").innerHTML=!S.loaded.assets?`<div class="empty">Loading…</div>`:attn.length?attn.slice(0,6).map(a=>`<div class="arow" data-asset="${esc(a.id)}"><div class="grow"><div><span class="tag">${esc(a.tag)}</span> ${esc(a.name)}</div><div class="sub">${esc(bname(a.blockId))}${a.room?` · ${esc(a.room)}`:""} · since ${fmtDay(a.lastMovedAt)}</div></div>${pill(a.status)}</div>`).join(""):`<div class="empty">Nothing under repair or missing.</div>`;
+  const rec=S.moves.filter(m=>S.block==="all"||m.toBlockId===S.block||m.fromBlockId===S.block).slice(0,6);
+  $("recentList").innerHTML=!S.loaded.movements?`<div class="empty">Loading…</div>`:rec.length?rec.map(m=>`<div class="rrow"><div class="top1"><span><span class="tag">${esc(m.assetTag)}</span> ${esc(m.assetName)}</span><span class="sub" style="white-space:nowrap">${fmtDay(m.at)}</span></div><div class="sub">${esc(bname(m.fromBlockId))}${m.fromRoom?` · ${esc(m.fromRoom)}`:""} → <b style="color:var(--ink)">${esc(bname(m.toBlockId))}${m.toRoom?` · ${esc(m.toRoom)}`:""}</b></div><div class="sub">${esc(m.reason)} · ${esc(m.handledBy||"")}</div></div>`).join(""):`<div class="empty">No movements yet.</div>`;
+}
+function renderAssets(){
+  const q=$("q").value.trim().toLowerCase(),cat=$("fCat").value,st=$("fStatus").value;
+  let list=scopedAssets().filter(a=>(!cat||a.category===cat)&&(!st||a.status===st)&&(!q||[a.tag,a.name,a.room,bname(a.blockId)].join(" ").toLowerCase().includes(q)));
+  list.sort((a,b)=>ncmp(a.tag,b.tag));
+  $("assetCount").textContent=`${list.length} of ${scopedAssets().length}`;
+  const head=`<div class="row head"><span>Tag</span><span>Item</span><span>Location</span><span>Status</span><span>Last moved</span><span></span></div>`;
+  if(!S.loaded.assets){$("assetList").innerHTML=`<div class="empty">Loading assets…</div>`;return}
+  if(!list.length){$("assetList").innerHTML=head+`<div class="empty">${S.assets.size?"No assets match these filters.":"No assets yet. Use “Add asset” to register the first one."}</div>`;return}
+  $("assetList").innerHTML=head+list.map(a=>`<div class="row click" data-asset="${esc(a.id)}">
+    <span class="tag c-tag">${esc(a.tag)}</span>
+    <span class="c-name"><div>${esc(a.name)}</div><div class="sub">${esc(a.category)} · ${esc(a.condition||"")}</div></span>
+    <span class="loc c-loc"><b>${esc(bname(a.blockId))}</b>${a.room?` · ${esc(a.room)}`:""}</span>
+    <span class="c-status">${pill(a.status)}</span>
+    <span class="sub c-cat"><span class="mob">Last moved </span>${fmtDay(a.lastMovedAt)}</span>
+    <span class="rowacts c-acts">${S.canWrite?`<button class="btn small" type="button" data-move="${esc(a.id)}">Move</button>`:""}</span>
+  </div>`).join("");
+}
+function filteredMoves(){
+  const q=$("mq").value.trim().toLowerCase(),r=$("mReason").value,days=+$("mRange").value;
+  const since=days?Date.now()-days*864e5:0;
+  return S.moves.filter(m=>(S.block==="all"||m.toBlockId===S.block||m.fromBlockId===S.block)&&(!r||m.reason===r)&&m.at>=since&&
+    (!q||[m.assetTag,m.assetName,m.handledBy,m.vendor,m.notes,m.fromRoom,m.toRoom].join(" ").toLowerCase().includes(q)));
+}
+function renderMoves(){
+  const list=filteredMoves();$("moveCount").textContent=`${list.length} movement${list.length===1?"":"s"}`;
+  const head=`<div class="mrow row head"><span>When</span><span>Asset</span><span>From → To</span><span>Reason · By</span></div>`;
+  if(!S.loaded.movements){$("moveList").innerHTML=`<div class="empty">Loading movements…</div>`;return}
+  if(!list.length){$("moveList").innerHTML=`<div class="empty">No movements in this period.</div>`;return}
+  $("moveList").innerHTML=head+list.map(m=>`<div class="mrow">
+    <span class="when">${esc(fmtWhen(m.at))}</span>
+    <span><span class="tag">${esc(m.assetTag)}</span> ${esc(m.assetName)}</span>
+    <span class="route"><span>${esc(bname(m.fromBlockId))}${m.fromRoom?` · ${esc(m.fromRoom)}`:""}</span><span class="arrow">→</span><b>${esc(bname(m.toBlockId))}${m.toRoom?` · ${esc(m.toRoom)}`:""}</b>${m.statusAfter?pill(m.statusAfter):""}</span>
+    <span><div>${esc(m.reason)}</div><div class="sub">${esc(m.handledBy||"—")}${m.vendor?` · ${esc(m.vendor)}`:""}${m.notes?` · ${esc(m.notes)}`:""}</div></span>
+  </div>`).join("");
+}
+function renderBlocks(){
+  const bl=blockList();
+  if(!S.loaded.blocks){$("blockCards").innerHTML=`<div class="empty">Loading…</div>`;return}
+  if(!bl.length){$("blockCards").innerHTML=`<div class="empty">No blocks yet. Add your hostel blocks, the main store and the repair workshop.</div>`;return}
+  const week=Date.now()-7*864e5;
+  $("blockCards").innerHTML=bl.map(b=>{
+    const as=[...S.assets.values()].filter(a=>a.blockId===b.id);const nr=roomsOf(b.id).length;
+    const inW=S.moves.filter(m=>m.toBlockId===b.id&&m.at>=week).length,outW=S.moves.filter(m=>m.fromBlockId===b.id&&m.at>=week).length;
+    const seg=STATUSES.map(s=>[s,as.filter(a=>a.status===s).length]).filter(x=>x[1]);
+    return `<div class="bcard">
+      <div class="kind">${esc(b.kind||"Residential")}${b.code?` · code ${esc(b.code)}`:""}</div>
+      <h3>${esc(b.name)}</h3>
+      <div class="sub">${esc(b.note||"")}</div>
+      <div><b style="font-variant-numeric:tabular-nums">${as.length}</b> assets · <b style="font-variant-numeric:tabular-nums">${nr}</b> rooms/spots · <span class="sub">${inW} in, ${outW} out this week</span></div>
+      <div class="bar">${seg.map(([s,n])=>`<span style="width:${n/as.length*100}%;background:${STATUS_COLOR[s]}" title="${esc(s)}: ${n}"></span>`).join("")}</div>
+      <div class="legend">${seg.map(([s,n])=>`<span><span class="dot" style="background:${STATUS_COLOR[s]}"></span> ${esc(s)} ${n}</span>`).join("")||"No assets here yet"}</div>
+      <div class="actions"><button class="btn small" type="button" data-viewblock="${esc(b.id)}">View assets</button>${S.canWrite?`<button class="btn small" type="button" data-editblock="${esc(b.id)}">Edit</button>`:""}</div>
+    </div>`}).join("");
+}
+
+/* ---------- masters ---------- */
+const MASTERS={
+  rooms:{label:"Rooms",one:"room",coll:"rooms",hint:"Rooms and spots in each block.",cols:"1fr 1fr 1fr 1.2fr .7fr .7fr 90px",
+    fields:[{k:"blockId",l:"Block",t:"block",req:1},{k:"number",l:"Room no. / spot",req:1,ph:"e.g. 204, Kitchen, Rack 3"},{k:"floor",l:"Floor",t:"select",o:()=>FLOORS,blank:1},{k:"type",l:"Type",t:"select",o:()=>ROOM_TYPES,blank:1},{k:"capacity",l:"Beds",t:"number"}],
+    show:[["Block",r=>bname(r.blockId)],["Room / spot",r=>r.number],["Floor",r=>r.floor],["Type",r=>r.type],["Beds",r=>r.capacity??""],["Assets",r=>[...S.assets.values()].filter(a=>a.blockId===r.blockId&&a.room===r.number).length]],
+    list:()=>entries(S.rooms).filter(r=>S.block==="all"||r.blockId===S.block).sort((a,b)=>ncmp(bname(a.blockId),bname(b.blockId))||ncmp(a.number,b.number)),
+    dup:(b,id)=>entries(S.rooms).find(r=>r.id!==id&&r.blockId===b.blockId&&String(r.number).toLowerCase()===String(b.number).toLowerCase())&&`Room ${b.number} already exists in ${bname(b.blockId)}.`,
+    inUse:r=>{const n=[...S.assets.values()].filter(a=>a.blockId===r.blockId&&a.room===r.number).length;return n&&`${n} assets are in this room. Move them first.`;}},
+  staff:{label:"Users",one:"user",coll:"staff",hint:"People who use the tracker and handle movements. Active users appear in the “Handled by” list.",cols:"1.3fr 1fr 1fr 1fr 1.4fr .6fr 90px",
+    fields:[{k:"name",l:"Name",req:1},{k:"role",l:"Role",t:"select",o:()=>ROLES},{k:"blockId",l:"Block in charge",t:"block",blank:"All blocks"},{k:"phone",l:"Phone",ph:"Mobile number"},{k:"email",l:"Email",ph:"name@example.com"},{k:"active",l:"Active",t:"select",o:()=>["Yes","No"]},...(window.HOSTED?[{k:"password",l:"Login password",t:"password",ph:"Set or change; blank keeps it",full:1}]:[])],
+    show:[["Name",s=>s.name],["Role",s=>s.role],["Block",s=>s.blockId?bname(s.blockId):"All blocks"],["Phone",s=>s.phone],["Email",s=>s.email||""],["Active",s=>(s.active||"Yes")+(window.HOSTED&&s.hasLogin?" · login":"")]],
+    list:()=>entries(S.staff).sort((a,b)=>ncmp(a.name,b.name)),
+    dup:(b,id)=>entries(S.staff).find(s=>s.id!==id&&s.name.toLowerCase()===b.name.toLowerCase())&&`${b.name} is already a user.`},
+  itemTypes:{label:"Item types",one:"item type",coll:"itemTypes",hint:"Kinds of items. The tag prefix builds asset tags such as A-FAN-001.",cols:"1.6fr 1fr .8fr .7fr 90px",
+    fields:[{k:"name",l:"Item type",req:1,ph:"e.g. Ceiling fan 48in"},{k:"category",l:"Category",t:"select",o:cats},{k:"prefix",l:"Tag prefix",req:1,ph:"e.g. FAN",upper:1,max:5}],
+    show:[["Item type",t=>t.name],["Category",t=>t.category],["Prefix",t=>t.prefix],["Assets",t=>[...S.assets.values()].filter(a=>a.itemTypeId===t.id).length]],
+    list:()=>itemTypeList(),
+    dup:(b,id)=>{const d=entries(S.itemTypes).find(t=>t.id!==id&&t.prefix===b.prefix);return d&&`Prefix ${b.prefix} is already used by ${d.name}.`;},
+    inUse:t=>{const n=[...S.assets.values()].filter(a=>a.itemTypeId===t.id).length;return n&&`${n} assets use this item type.`;}},
+  vendors:{label:"Vendors",one:"vendor",coll:"vendors",hint:"Suppliers and repair contractors.",cols:"1.4fr 1.1fr 1fr 1.4fr 90px",
+    fields:[{k:"name",l:"Vendor name",req:1},{k:"kind",l:"Type",t:"select",o:()=>VENDOR_KINDS},{k:"phone",l:"Phone"},{k:"contact",l:"Contact person"},{k:"notes",l:"Address / notes",full:1}],
+    show:[["Vendor",v=>v.name],["Type",v=>v.kind],["Phone",v=>v.phone],["Contact",v=>v.contact]],
+    list:()=>vendorList(),
+    dup:(b,id)=>entries(S.vendors).find(v=>v.id!==id&&v.name.toLowerCase()===b.name.toLowerCase())&&`${b.name} already exists.`},
+  categories:{label:"Categories",one:"category",coll:"categories",hint:"Groups used to filter the asset register.",cols:"2fr .7fr 90px",
+    fields:[{k:"name",l:"Category name",req:1}],
+    show:[["Category",c=>c.name],["Assets",c=>[...S.assets.values()].filter(a=>a.category===c.name).length]],
+    list:()=>entries(S.categories).sort((a,b)=>(a.order??99)-(b.order??99)||ncmp(a.name,b.name)),
+    dup:(b,id)=>entries(S.categories).find(c=>c.id!==id&&c.name.toLowerCase()===b.name.toLowerCase())&&`${b.name} already exists.`,
+    inUse:c=>{const n=[...S.assets.values()].filter(a=>a.category===c.name).length;return n&&`${n} assets are in this category.`;},
+    rename:"category"},
+  reasons:{label:"Movement reasons",one:"reason",coll:"reasons",hint:"Each reason can set the status and destination for you when logging a move.",cols:"1.5fr 1fr 1.5fr 90px",
+    fields:[{k:"name",l:"Reason",req:1},{k:"statusAfter",l:"Sets status to",t:"select",o:()=>[{v:"",t:"Choose each time"},...STATUSES.map(s=>({v:s,t:s}))]},{k:"dest",l:"Destination",t:"select",o:()=>DEST_OPTS.map(([v,t])=>({v,t}))}],
+    show:[["Reason",r=>r.name],["Sets status",r=>r.statusAfter||"—"],["Destination",r=>(DEST_OPTS.find(d=>d[0]===(r.dest||""))||DEST_OPTS[0])[1]]],
+    list:()=>entries(S.reasons).sort((a,b)=>(a.order??99)-(b.order??99)||ncmp(a.name,b.name)),
+    dup:(b,id)=>entries(S.reasons).find(r=>r.id!==id&&r.name.toLowerCase()===b.name.toLowerCase())&&`${b.name} already exists.`}
+};
+function renderMasters(){
+  const mobile=isMobile();
+  const showMenu=mobile&&!S.masterOpen;
+  $("masterMenu").hidden=!showMenu;$("masterDetail").hidden=showMenu;
+  $("masterMenu").innerHTML=[...Object.entries(MASTERS).map(([k,m])=>[`#masters-${k}`,k,m.label,m.hint,S[m.coll].size]),["#blocks","blocks","Blocks & locations","Hostel blocks, stores and the repair workshop.",S.blocks.size]]
+    .map(([href,i,l,h,n])=>`<a class="mitem" href="${href}"><span class="ico">${ICO[i]}</span><span class="grow"><b>${esc(l)}</b> <span class="sub">(${n})</span><div class="sub">${esc(h)}</div></span><span class="chev">›</span></a>`).join("");
+  $("masterChips").innerHTML=Object.entries(MASTERS).map(([k,m])=>`<button class="bchip" type="button" data-master="${k}" aria-pressed="${S.master===k}">${esc(m.label)} <b>${S[m.coll].size}</b></button>`).join("")+
+    `<a class="bchip" href="#blocks" style="text-decoration:none;color:inherit">Blocks <b>${S.blocks.size}</b></a>`;
+  const M=MASTERS[S.master];$("masterHint").textContent=M.hint;$("btnBulkRooms").hidden=!(S.master==="rooms"&&S.canWrite);
+  $("btnAddMaster").textContent=`+ Add ${M.one}`;$("btnAddMaster").hidden=!S.canWrite;
+  if(!S.loaded[M.coll]){$("masterList").innerHTML=`<div class="empty">Loading…</div>`;return}
+  const q=$("xq").value.trim().toLowerCase();
+  const list=M.list().filter(x=>!q||M.show.map(([,f])=>f(x)).join(" ").toLowerCase().includes(q));
+  const head=`<div class="mgrid head" style="grid-template-columns:${M.cols}">${M.show.map(([l])=>`<span>${esc(l)}</span>`).join("")}<span></span></div>`;
+  if(!list.length){$("masterList").innerHTML=`<div class="empty">${M.list().length?"Nothing matches your search.":`No ${M.label.toLowerCase()} yet.`}${S.master==="rooms"&&!M.list().length?" Use “Bulk add rooms” to add a whole floor at once.":""}</div>`;return}
+  $("masterList").innerHTML=head+list.map(x=>`<div class="mgrid${x.active==="No"?" inactive":""}" style="grid-template-columns:${M.cols}">${M.show.map(([l,f],i)=>`<span${i?` data-l="${esc(l)}"`:""} class="${typeof f(x)==="number"?"num":""}">${esc(f(x))}</span>`).join("")}<span class="rowacts">${S.canWrite?`<button class="btn small" type="button" data-editmaster="${esc(x.id)}">Edit</button>`:""}</span></div>`).join("");
+}
+let editingMaster=null;
+function openMaster(id){
+  const M=MASTERS[S.master];editingMaster=id||null;const x=id?S[M.coll].get(id):{};
+  $("masterTitle").textContent=id?`Edit ${M.one}`:`Add ${M.one}`;
+  $("masterFields").innerHTML=M.fields.map(f=>{
+    const fid="mf_"+f.k,val=x[f.k]??(f.k==="blockId"&&!id&&S.block!=="all"?S.block:"");
+    let ctl;
+    if(f.t==="block")ctl=`<select id="${fid}">${f.blank?`<option value="">${esc(f.blank)}</option>`:""}${blockList().map(b=>`<option value="${esc(b.id)}"${b.id===val?" selected":""}>${esc(b.name)}</option>`).join("")}</select>`;
+    else if(f.t==="select"){const o=f.o().map(v=>typeof v==="string"?{v,t:v}:v);ctl=`<select id="${fid}">${f.blank?`<option value="">—</option>`:""}${o.map(v=>`<option value="${esc(v.v)}"${v.v===val?" selected":""}>${esc(v.t)}</option>`).join("")}</select>`;}
+    else ctl=`<input id="${fid}" ${f.t==="number"?'type="number" inputmode="numeric"':f.t==="password"?'type="password" autocomplete="new-password"':""} value="${f.t==="password"?"":esc(val)}" placeholder="${esc(f.ph||"")}"${f.max?` maxlength="${f.max}"`:""}${f.upper?' style="text-transform:uppercase"':""}>`;
+    return `<div class="field${f.full||M.fields.length===1?" full":""}"><label for="${fid}">${esc(f.l)}</label>${ctl}</div>`;}).join("");
+  $("btnDelMaster").hidden=!id;$("masterErr").textContent="";openDlg("dlgMaster");
+}
+$("formMaster").addEventListener("submit",async e=>{e.preventDefault();if(!needDb())return;
+  const M=MASTERS[S.master];const body={};
+  for(const f of M.fields){let v=$("mf_"+f.k).value;v=f.t==="number"?(v===""?null:+v):String(v).trim();if(f.upper&&v)v=v.toUpperCase();
+    if(f.req&&!v){$("masterErr").textContent=`${f.l} is required.`;return}body[f.k]=v;}
+  const d=M.dup&&M.dup(body,editingMaster);if(d){$("masterErr").textContent=d;return}
+  $("btnSaveMaster").disabled=true;
+  try{
+    if(editingMaster){
+      const old=S[M.coll].get(editingMaster);
+      await S.db.doc(M.coll+"/"+editingMaster).update(body);
+      if(M.rename==="category"&&old.name!==body.name){for(const [aid,a] of S.assets)if(a.category===old.name)await S.db.doc("assets/"+aid).update({category:body.name});}
+      if(S.master==="rooms"&&(old.number!==body.number||old.blockId!==body.blockId)){for(const [aid,a] of S.assets)if(a.blockId===old.blockId&&a.room===old.number)await S.db.doc("assets/"+aid).update({blockId:body.blockId,room:body.number});}
+    }else await S.db.collection(M.coll).add({...body,order:S[M.coll].size+1});
+    closeDlg("dlgMaster");toast("Saved");
+  }catch(err){$("masterErr").textContent=errText(err);}finally{$("btnSaveMaster").disabled=false;}
+});
+$("btnDelMaster").addEventListener("click",async()=>{if(!needDb())return;const M=MASTERS[S.master];const x={id:editingMaster,...S[M.coll].get(editingMaster)};
+  const u=M.inUse&&M.inUse(x);if(u){$("masterErr").textContent=u;return}
+  if(!await confirmBox(`Delete ${M.one}?`,`${x.name||x.number} will be removed from ${M.label}. Past movements are not affected.`,"Delete"))return;
+  try{await S.db.doc(M.coll+"/"+editingMaster).delete();closeDlg("dlgMaster");toast("Deleted");}catch(err){$("masterErr").textContent=errText(err);}
+});
+
+/* bulk rooms */
+opts($("kFloor"),FLOORS);opts($("kType"),ROOM_TYPES);
+function openBulk(){if(!S.blocks.size){toast("Add a block first.");return}
+  fillBlockSelect($("kBlock"),S.block!=="all"?S.block:"");$("kFrom").value="";$("kTo").value="";$("kCap").value="2";$("kType").value="Double";$("kFloor").value="1st";
+  $("bulkErr").textContent="";$("bulkProgress").textContent="";openDlg("dlgBulk");}
+$("formBulk").addEventListener("submit",async e=>{e.preventDefault();if(!needDb())return;
+  const from=parseInt($("kFrom").value,10),to=parseInt($("kTo").value,10),bid=$("kBlock").value;
+  if(!(from>=0&&to>=from)){$("bulkErr").textContent="Enter a valid range, with the To number no smaller than From.";return}
+  if(to-from>199){$("bulkErr").textContent="Add at most 200 rooms at a time.";return}
+  const pad=String($("kFrom").value).trim().length;
+  const existing=new Set(roomsOf(bid).map(r=>String(r.number)));
+  const nums=[];for(let n=from;n<=to;n++){const s=String(n).padStart(pad,"0");if(!existing.has(s))nums.push(s);}
+  if(!nums.length){$("bulkErr").textContent="All these rooms already exist.";return}
+  $("btnSaveBulk").disabled=true;let done=0;
+  const cap=$("kCap").value===""?null:+$("kCap").value;
+  try{for(const num of nums){await S.db.collection("rooms").add({blockId:bid,number:num,floor:$("kFloor").value,type:$("kType").value,capacity:cap});done++;$("bulkProgress").textContent=`Added ${done} of ${nums.length}…`;}
+    closeDlg("dlgBulk");toast(`${done} rooms added to ${bname(bid)}`);}
+  catch(err){$("bulkErr").textContent=`${done} added, then: ${errText(err)}`;}finally{$("btnSaveBulk").disabled=false;}
+});
+
+/* ---------- tabs ---------- */
+const TABS=["home","assets","movements","blocks","masters"];
+const TITLES={home:"Dashboard",assets:"Assets",movements:"Movement log",blocks:"Blocks & locations",masters:"Masters"};
+const MQ=window.matchMedia?window.matchMedia("(max-width:999px)"):{get matches(){return window.innerWidth<1000}};const isMobile=()=>MQ.matches;
+function setTab(h){let t=h||"home",sub=null;
+  if(t.startsWith("masters-")){sub=t.slice(8);t="masters";if(!MASTERS[sub])sub=null;}
+  if(!TABS.includes(t))t="home";
+  S.tab=t;S.masterOpen=!!sub;if(sub){S.master=sub;$("xq").value="";}
+  for(const v of TABS)$("view-"+v).hidden=v!==t;
+  document.querySelectorAll(".bnav [data-bn]").forEach(a=>a.setAttribute("aria-current",a.dataset.bn===t?"page":"false"));
+  const title=t==="masters"&&(sub||!isMobile())?MASTERS[S.master].label:TITLES[t];
+  $("abTitle").textContent=t==="home"?"Asset Tracker":title;$("deskTitle").textContent=title;
+  $("abBack").hidden=t==="home";
+  $("abAdd").hidden=!S.canWrite||!(t==="assets"||t==="blocks"||(t==="masters"&&sub)||t==="home");
+  renderSide();renderMasters();window.scrollTo(0,0);}
+MQ.addEventListener?.("change",()=>setTab(location.hash.slice(1)));
+window.addEventListener("hashchange",()=>setTab(location.hash.slice(1)));
+
+/* ---------- dialogs ---------- */
+function openDlg(id){$(id).hidden=false;const f=$(id).querySelector("input:not([hidden]),select");f&&setTimeout(()=>f.focus(),30);}
+function closeDlg(id){$(id).hidden=true;}
+document.querySelectorAll(".overlay").forEach(o=>{o.addEventListener("click",e=>{if(e.target===o||e.target.closest("[data-close]"))o.hidden=true;});});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")document.querySelectorAll(".overlay:not([hidden])").forEach(o=>o.hidden=true);});
+function confirmBox(title,text,okLabel){return new Promise(res=>{$("cTitle").textContent=title;$("cText").textContent=text;$("cOk").textContent=okLabel||"Confirm";openDlg("dlgConfirm");
+  const ok=()=>{cleanup();closeDlg("dlgConfirm");res(true)};const cancel=e=>{if(e.target===$("dlgConfirm")||e.target.closest("[data-close]")){cleanup();res(false)}};
+  function cleanup(){$("cOk").removeEventListener("click",ok);$("dlgConfirm").removeEventListener("click",cancel);}
+  $("cOk").addEventListener("click",ok);$("dlgConfirm").addEventListener("click",cancel);});}
+function fillBlockSelect(sel,val){sel.innerHTML=blockList().map(b=>`<option value="${esc(b.id)}">${esc(b.name)}</option>`).join("");if(val)sel.value=val;}
+function needDb(){if(!S.db){toast(window.HOSTED?"Sign in to save changes.":"Data can't be saved in this view. Open the page on claude.ai while signed in.");return false}if(!S.canWrite){toast("You have view-only access to this tracker.");return false}return true;}
+
+/* ---------- asset form ---------- */
+let editingAsset=null,autoTag=false;
+function blockCode(bid){const b=S.blocks.get(bid);if(!b)return"X";if(b.code)return String(b.code).toUpperCase();const m=String(b.name).match(/block\s+(\w+)/i);return (m?m[1]:String(b.name).slice(0,1)).toUpperCase();}
+function suggestTag(){
+  const t=S.itemTypes.get($("aType").value);const code=blockCode($("aBlock").value);
+  if(!t){$("aTagHint").textContent="";return}
+  const pre=`${code}-${t.prefix}-`;let max=0;
+  for(const a of S.assets.values()){const s=String(a.tag);if(s.toUpperCase().startsWith(pre)){const n=parseInt(s.slice(pre.length),10);if(n>max)max=n;}}
+  const next=pre+String(max+1).padStart(3,"0");
+  if(!editingAsset&&(autoTag||!$("aTag").value.trim())){$("aTag").value=next;autoTag=true;}
+  $("aTagHint").textContent=`Next free tag: ${next}`;
+}
+function openAsset(id){
+  editingAsset=id||null;const a=id?S.assets.get(id):null;autoTag=false;
+  if(!id&&!S.blocks.size){toast("Add a block first.");location.hash="#blocks";return}
+  $("assetTitle").textContent=a?`${a.tag} · ${a.name}`:"Add asset";
+  opts($("aType"),itemTypeList().map(t=>({v:t.id,t:`${t.name} (${t.prefix})`})),"— None —");$("aType").value=a?.itemTypeId||"";
+  opts($("aCat"),cats());
+  opts($("aVendor"),vendorList("Supplier").map(v=>({v:v.id,t:v.name})),"— None —");$("aVendor").value=a?.supplierId||"";
+  fillBlockSelect($("aBlock"),a?.blockId||(S.block!=="all"?S.block:""));
+  setPicker($("aRoomSel"),$("aRoom"),roomOpts($("aBlock").value),a?.room||"");
+  $("aTag").value=a?.tag||"";$("aName").value=a?.name||"";$("aCat").value=a?.category||cats()[0];
+  $("aStatus").value=a?.status||"In use";$("aCond").value=a?.condition||"Good";$("aNotes").value=a?.notes||"";
+  $("btnDelAsset").hidden=!(a&&S.canWrite);$("btnSaveAsset").hidden=!S.canWrite;$("assetErr").textContent="";
+  const hist=a?S.moves.filter(m=>m.assetId===id):[];
+  $("assetHistWrap").hidden=!a;
+  $("assetHist").innerHTML=hist.length?hist.map(m=>`<div><b>${esc(fmtWhen(m.at))}</b> · ${esc(m.reason)}<br>${esc(bname(m.fromBlockId))}${m.fromRoom?" · "+esc(m.fromRoom):""} → ${esc(bname(m.toBlockId))}${m.toRoom?" · "+esc(m.toRoom):""} <span class="sub">${esc(m.handledBy||"")}${m.vendor?" · "+esc(m.vendor):""}</span></div>`).join(""):`<div class="sub">No movements logged yet.</div>`;
+  suggestTag();openDlg("dlgAsset");
+}
+$("aType").addEventListener("change",()=>{const t=S.itemTypes.get($("aType").value);
+  if(t){if(!$("aName").value.trim()||autoTag)$("aName").value=t.name;if(t.category)$("aCat").value=t.category;}suggestTag();});
+$("aBlock").addEventListener("change",()=>{setPicker($("aRoomSel"),$("aRoom"),roomOpts($("aBlock").value),"");suggestTag();});
+$("aTag").addEventListener("input",()=>{autoTag=false;});
+$("formAsset").addEventListener("submit",async e=>{e.preventDefault();if(!needDb())return;
+  const tag=$("aTag").value.trim().toUpperCase(),name=$("aName").value.trim();
+  if(!tag||!name){$("assetErr").textContent="Tag and item description are required.";return}
+  const dup=[...S.assets.entries()].find(([id,a])=>id!==editingAsset&&String(a.tag).toUpperCase()===tag);
+  if(dup){$("assetErr").textContent=`Tag ${tag} is already used by ${dup[1].name}.`;return}
+  const body={tag,name,itemTypeId:$("aType").value,category:$("aCat").value,blockId:$("aBlock").value,room:pickerVal($("aRoomSel"),$("aRoom")),status:$("aStatus").value,condition:$("aCond").value,supplierId:$("aVendor").value,notes:$("aNotes").value.trim(),updatedAt:Date.now()};
+  $("btnSaveAsset").disabled=true;
+  try{
+    if(editingAsset){await S.db.doc("assets/"+editingAsset).update(body);toast("Asset updated");}
+    else{await S.db.collection("assets").add({...body,createdAt:Date.now(),lastMovedAt:null});toast(`${tag} added`);}
+    closeDlg("dlgAsset");
+  }catch(err){$("assetErr").textContent=errText(err);}
+  finally{$("btnSaveAsset").disabled=false;}
+});
+$("btnDelAsset").addEventListener("click",async()=>{const a=S.assets.get(editingAsset);if(!a||!needDb())return;
+  if(!await confirmBox("Delete asset?",`${a.tag} · ${a.name} will be removed from the register. Its past movements stay in the log.`,"Delete"))return;
+  try{await S.db.doc("assets/"+editingAsset).delete();closeDlg("dlgAsset");toast("Asset deleted");}catch(err){$("assetErr").textContent=errText(err);}
+});
+
+/* ---------- move form ---------- */
+let moveAssetId=null;
+function assetLabel(a){return `${a.tag} — ${a.name}`;}
+function staffOpts(){return activeStaff().map(s=>({v:s.name,t:s.name+(s.role?` · ${s.role}`:"")}));}
+function openMove(id){
+  if(!S.assets.size){toast("Add an asset first.");return}
+  $("assetOptions").innerHTML=[...S.assets.values()].filter(a=>a.status!=="Disposed").map(a=>`<option value="${esc(assetLabel(a))}"></option>`).join("");
+  opts($("mReasonIn"),reasons().map(r=>r.name));
+  fillBlockSelect($("mToBlock"));
+  opts($("mVendor"),vendorList().map(v=>({v:v.name,t:`${v.name} · ${v.kind||""}`})),"— None —");
+  $("mAsset").value=id?assetLabel(S.assets.get(id)):"";
+  $("mStatusIn").value="In use";$("mNotes").value="";$("moveErr").textContent="";
+  const now=new Date();now.setMinutes(now.getMinutes()-now.getTimezoneOffset());$("mWhen").value=now.toISOString().slice(0,16);
+  let last="";try{last=localStorage.getItem("hat-handledBy")||""}catch(_){}
+  setPicker($("mBySel"),$("mBy"),staffOpts(),last);
+  pickMoveAsset();
+  const a=S.assets.get(moveAssetId);if(a)$("mToBlock").value=a.blockId;
+  setPicker($("mRoomSel"),$("mToRoom"),roomOpts($("mToBlock").value),"");
+  applyReason();openDlg("dlgMove");
+}
+function pickMoveAsset(){
+  const v=$("mAsset").value.trim().toLowerCase();
+  const hit=[...S.assets.entries()].find(([,a])=>assetLabel(a).toLowerCase()===v||String(a.tag).toLowerCase()===v);
+  moveAssetId=hit?hit[0]:null;
+  if(!hit){$("mFrom").textContent="Pick an asset to see where it is now.";return}
+  const a=hit[1];$("mFrom").innerHTML=`Now at <b>${esc(bname(a.blockId))}${a.room?" · "+esc(a.room):""}</b> ${pill(a.status)}`;
+}
+function applyReason(){const r=reasonByName($("mReasonIn").value);if(!r)return;
+  if(r.statusAfter)$("mStatusIn").value=r.statusAfter;
+  if(r.dest==="Store"||r.dest==="Repair"){const b=blockList().find(b=>b.kind===r.dest);if(b){$("mToBlock").value=b.id;setPicker($("mRoomSel"),$("mToRoom"),roomOpts(b.id),"");}}
+  if(r.dest==="Same"){const a=S.assets.get(moveAssetId);if(a){$("mToBlock").value=a.blockId;setPicker($("mRoomSel"),$("mToRoom"),roomOpts(a.blockId),a.room||"");}}
+}
+$("mAsset").addEventListener("input",pickMoveAsset);$("mAsset").addEventListener("change",()=>{pickMoveAsset();applyReason();});
+$("mReasonIn").addEventListener("change",applyReason);
+$("mToBlock").addEventListener("change",()=>setPicker($("mRoomSel"),$("mToRoom"),roomOpts($("mToBlock").value),""));
+$("formMove").addEventListener("submit",async e=>{e.preventDefault();if(!needDb())return;
+  pickMoveAsset();const a=S.assets.get(moveAssetId);
+  if(!a){$("moveErr").textContent="Choose an asset from the list.";return}
+  const toBlockId=$("mToBlock").value,toRoom=pickerVal($("mRoomSel"),$("mToRoom")),handledBy=pickerVal($("mBySel"),$("mBy"));
+  if(!handledBy){$("moveErr").textContent="Choose the user who handled the movement.";return}
+  const at=$("mWhen").value?new Date($("mWhen").value).getTime():Date.now();
+  const status=$("mStatusIn").value;
+  const mv={assetId:moveAssetId,assetTag:a.tag,assetName:a.name,fromBlockId:a.blockId,fromRoom:a.room||"",toBlockId,toRoom,reason:$("mReasonIn").value,statusAfter:status,handledBy,vendor:$("mVendor").value,notes:$("mNotes").value.trim(),at,loggedAt:Date.now()};
+  if(S.uid)mv.loggedBy=S.uid;
+  $("btnSaveMove").disabled=true;
+  try{
+    await S.db.collection("movements").add(mv);
+    const upd={blockId:toBlockId,room:toRoom,status,updatedAt:Date.now()};
+    if(!a.lastMovedAt||at>=a.lastMovedAt)upd.lastMovedAt=at;
+    await S.db.doc("assets/"+moveAssetId).update(upd);
+    try{localStorage.setItem("hat-handledBy",handledBy)}catch(_){}
+    closeDlg("dlgMove");toast(`${a.tag} moved to ${bname(toBlockId)}${toRoom?" · "+toRoom:""}`);
+  }catch(err){$("moveErr").textContent=errText(err);}
+  finally{$("btnSaveMove").disabled=false;}
+});
+
+/* ---------- block form ---------- */
+let editingBlock=null;
+function openBlock(id){editingBlock=id||null;const b=id?S.blocks.get(id):null;
+  $("blockTitle").textContent=b?`Edit ${b.name}`:"Add block / location";
+  $("bName").value=b?.name||"";$("bCode").value=b?.code||"";$("bKind").value=b?.kind||"Residential";$("bNote").value=b?.note||"";
+  $("btnDelBlock").hidden=!b;$("blockErr").textContent="";openDlg("dlgBlock");}
+$("formBlock").addEventListener("submit",async e=>{e.preventDefault();if(!needDb())return;
+  const name=$("bName").value.trim();if(!name){$("blockErr").textContent="Give the block a name.";return}
+  const code=$("bCode").value.trim().toUpperCase();
+  if(code&&blockList().some(b=>b.id!==editingBlock&&String(b.code||"").toUpperCase()===code)){$("blockErr").textContent=`Code ${code} is already used by another block.`;return}
+  const body={name,code,kind:$("bKind").value,note:$("bNote").value.trim()};
+  try{
+    if(editingBlock)await S.db.doc("blocks/"+editingBlock).update(body);
+    else await S.db.collection("blocks").add({...body,order:S.blocks.size+1});
+    closeDlg("dlgBlock");toast("Saved");
+  }catch(err){$("blockErr").textContent=errText(err);}
+});
+$("btnDelBlock").addEventListener("click",async()=>{if(!needDb())return;
+  const n=[...S.assets.values()].filter(a=>a.blockId===editingBlock).length,r=roomsOf(editingBlock).length;
+  if(n){$("blockErr").textContent=`${n} assets are still here. Move them out before deleting this location.`;return}
+  if(r){$("blockErr").textContent=`${r} rooms belong to this block. Delete them in Masters → Rooms first.`;return}
+  if(!await confirmBox("Delete location?",`${bname(editingBlock)} will be removed.`,"Delete"))return;
+  try{await S.db.doc("blocks/"+editingBlock).delete();closeDlg("dlgBlock");}catch(err){$("blockErr").textContent=errText(err);}
+});
+
+/* ---------- clear samples ---------- */
+$("btnClearSamples").addEventListener("click",async()=>{if(!needDb())return;
+  if(!await confirmBox("Remove sample data?","This deletes the example blocks, rooms, users, vendors, assets and movements. Item types, categories, reasons and anything you added yourself stay.","Remove samples"))return;
+  const jobs=[];
+  for(const [id,x] of S.assets)if(x.sample)jobs.push("assets/"+id);
+  for(const m of S.moves)if(m.sample)jobs.push("movements/"+m.id);
+  for(const c of ["staff","vendors"])for(const [id,x] of S[c])if(x.sample)jobs.push(c+"/"+id);
+  const keepBlock=id=>[...S.assets.values()].some(a=>a.blockId===id&&!a.sample)||[...S.rooms.values()].some(r=>r.blockId===id&&!r.sample);
+  for(const [id,x] of S.rooms)if(x.sample&&!keepBlock(x.blockId))jobs.push("rooms/"+id);
+  for(const [id,x] of S.blocks)if(x.sample&&!keepBlock(id))jobs.push("blocks/"+id);
+  let n=0;try{for(const p of jobs){await S.db.doc(p).delete();n++;}toast("Sample data removed");}catch(err){toast(`${n} removed, then: ${errText(err)}`);}
+});
+
+/* ---------- export ---------- */
+$("btnExport").addEventListener("click",async()=>{
+  const rows=[["Date","Asset tag","Item","From block","From room","To block","To room","Reason","Status after","Handled by","Vendor","Notes"]];
+  for(const m of filteredMoves())rows.push([new Date(m.at).toISOString().replace("T"," ").slice(0,16),m.assetTag,m.assetName,bname(m.fromBlockId),m.fromRoom,bname(m.toBlockId),m.toRoom,m.reason,m.statusAfter,m.handledBy,m.vendor,m.notes]);
+  const csv=rows.map(r=>r.map(v=>{v=String(v??"");return /[",\n]/.test(v)?`"${v.replace(/"/g,'""')}"`:v}).join(",")).join("\n");
+  const name=`asset-movements-${new Date().toISOString().slice(0,10)}.csv`;
+  try{const dl=await claude.use("downloads");if(dl){await dl.save({filename:name,data:csv});return}}catch(e){if(e&&e.code)return;}
+  try{await navigator.clipboard.writeText(csv);toast("CSV copied to clipboard");}catch(_){toast("Export isn't available in this view.");}
+});
+
+/* ---------- delegated clicks ---------- */
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-go],[data-move],[data-asset],[data-block],[data-viewblock],[data-editblock],[data-master],[data-editmaster],.tile");if(!t)return;
+  if(t.dataset.move){e.stopPropagation();openMove(t.dataset.move);return}
+  if(t.dataset.asset){openAsset(t.dataset.asset);return}
+  if(t.dataset.block){S.block=t.dataset.block;render();return}
+  if(t.dataset.viewblock){S.block=t.dataset.viewblock;location.hash="#assets";render();return}
+  if(t.dataset.editblock){openBlock(t.dataset.editblock);return}
+  if(t.dataset.master){location.hash="#masters-"+t.dataset.master;return}
+  if(t.dataset.go){const g=t.dataset.go;if(g==="act:addAsset")openAsset(null);else if(g==="act:move")openMove(null);else if(g==="act:export"){location.hash="#movements";setTimeout(()=>$("btnExport").click(),50);}return}
+  if(t.dataset.editmaster){openMaster(t.dataset.editmaster);return}
+  if(t.classList.contains("tile")){const a=t.dataset.act;if(a==="#moves"){location.hash="#movements";$("mRange").value="7";renderMoves();}else{location.hash="#assets";$("fStatus").value=a;renderAssets();}}
+});
+$("btnAddAsset").addEventListener("click",()=>openAsset(null));
+$("sideAdd").addEventListener("click",()=>openAsset(null));
+$("bnMove").addEventListener("click",()=>openMove(null));
+$("abBack").addEventListener("click",()=>{location.hash=S.tab==="masters"&&S.masterOpen?"#masters":"#home";});
+$("abAdd").addEventListener("click",()=>{if(S.tab==="blocks")openBlock(null);else if(S.tab==="masters")openMaster(null);else openAsset(null);});
+for(const id of ["fBlockH","fBlockA","fBlockM"])$(id).addEventListener("change",e=>{S.block=e.target.value;render();});
+$("sideMove").addEventListener("click",()=>openMove(null));
+$("btnMove").addEventListener("click",()=>openMove(null));
+$("btnAddBlock").addEventListener("click",()=>openBlock(null));
+$("btnAddMaster").addEventListener("click",()=>openMaster(null));
+$("btnBulkRooms").addEventListener("click",openBulk);
+["q","fCat","fStatus"].forEach(id=>$(id).addEventListener("input",renderAssets));
+["mq","mReason","mRange"].forEach(id=>$(id).addEventListener("input",renderMoves));
+$("xq").addEventListener("input",renderMasters);
+
+function errText(e){const c=e&&e.code;
+  if(c==="forbidden"||c==="unauthenticated")return e.message||"You don't have permission for this.";
+  if(window.HOSTED&&c==="invalid_argument"&&e.message)return e.message;
+  if(c==="invalid_argument")return"This change couldn't be saved. You may have view-only access.";
+  if(c==="quota_exceeded")return"The tracker's storage is full. Export and remove old movements to free space.";
+  if(c==="resource_exhausted")return"Too many changes at once. Wait a moment and try again.";
+  return"Couldn't save right now. Check your connection and try again.";}
+
+/* ---------- data ---------- */
+setTab(location.hash.slice(1));
+render();
+(async()=>{
+  const COLLS=["blocks","assets","rooms","staff","itemTypes","vendors","categories","reasons"];
+  const timer=setTimeout(()=>note("The tracker's data can't be reached yet. Check your connection; it will load when the connection returns."),10000);
+  const db=await claude.use("db");
+  if(!db){clearTimeout(timer);S.canWrite=false;[...COLLS,"movements"].forEach(c=>S.loaded[c]=true);render();note("Sign in on claude.ai to load and update this tracker's shared data.");return}
+  S.db=db;
+  const user=await claude.use("user");
+  if(user){try{S.uid=await user.id();const w=await user.can("data.write");if(w===false)S.canWrite=false;}catch(_){}setTab(location.hash.slice(1));}
+  const done=snap=>{if(!snap.metadata.fromCache){clearTimeout(timer);note("");}};
+  const fail=()=>{clearTimeout(timer);note("Live updates stopped. Reload the page to reconnect.");};
+  let queued=false;const soon=()=>{if(queued)return;queued=true;requestAnimationFrame(()=>{queued=false;render();});};
+  for(const c of COLLS)db.collection(c).onSnapshot(s=>{S[c]=new Map(s.docs.map(d=>[d.id,d.data()]));S.loaded[c]=true;done(s);soon();},fail);
+  db.collection("movements").orderBy("at","desc").limit(1000).onSnapshot(s=>{S.moves=s.docs.map(d=>({id:d.id,...d.data()}));S.loaded.movements=true;done(s);soon();},fail);
+})();
+</script>
+</body>
+</html>
