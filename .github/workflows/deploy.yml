@@ -15,7 +15,6 @@ jobs:
     timeout-minutes: 15
     env:
       FTP_SERVER: ${{ secrets.FTP_SERVER }}
-      FTP_DIR: ${{ vars.FTP_SERVER_DIR || 'public_html/' }}
     steps:
       - name: Get latest code
         uses: actions/checkout@v4
@@ -47,27 +46,53 @@ jobs:
         if: env.FTP_SERVER != ''
         run: sudo apt-get update -q >/dev/null && sudo apt-get install -y -q lftp >/dev/null && lftp --version | head -1
 
-      # Uploads public/ into the FTP account's public_html/ (the "Folder to upload files" in hPanel).
-      # Passive mode with plain PASV (not EPSV); tries plain FTP first, then FTP over TLS.
+      # Finds which FTP folder the website actually serves (the login folder itself, or public_html/
+      # inside it) by uploading a probe file to each and requesting it over HTTPS, then mirrors public/ there.
       - name: Upload to Hostinger via FTP
         if: env.FTP_SERVER != ''
         env:
           FTP_USER: ${{ secrets.FTP_USERNAME }}
           LFTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          SITE_URL: ${{ vars.SITE_URL || 'https://assettracker.bizskilledu.com' }}
+          FIXED_DIR: ${{ vars.FTP_SERVER_DIR }}
         run: |
           HOST="${FTP_SERVER#ftp://}"; HOST="${HOST%/}"
-          upload() {
+          SSL=no
+          ftpcmd() {
             lftp -e "
-              set ftp:ssl-allow $1; set ftp:ssl-force $1; set ftp:ssl-protect-data $1; set ssl:verify-certificate no;
+              set ftp:ssl-allow $SSL; set ftp:ssl-force $SSL; set ftp:ssl-protect-data $SSL; set ssl:verify-certificate no;
               set ftp:passive-mode on; set ftp:prefer-epsv no; set ftp:fix-pasv-address yes;
               set net:timeout 20; set net:max-retries 3; set net:reconnect-interval-base 5;
               set cmd:fail-exit yes;
               open -u $FTP_USER --env-password ftp://$HOST;
-              mkdir -p -f $FTP_DIR;
-              mirror -R --verbose --parallel=1 --no-perms --exclude-glob config.sample.php ./public/ $FTP_DIR;
+              $1
               bye"
           }
-          if upload no; then echo "Uploaded over FTP"; else
-            echo "::warning::Plain FTP failed, retrying with FTP over TLS"; sleep 10
-            upload yes && echo "Uploaded over FTPS"
+          # Plain FTP first; switch to FTP over TLS if that fails.
+          if ! ftpcmd "cls -1 >/dev/null;"; then echo "::warning::Plain FTP failed, using FTP over TLS"; SSL=yes; ftpcmd "cls -1 >/dev/null;"; fi
+
+          if [ -n "$FIXED_DIR" ]; then
+            DIR="$FIXED_DIR"
+          else
+            PROBE="deploy-probe-${GITHUB_RUN_ID}.txt"
+            echo root > "/tmp/$PROBE.root"; echo sub > "/tmp/$PROBE.sub"
+            ftpcmd "put /tmp/$PROBE.root -o $PROBE; mkdir -p -f public_html; put /tmp/$PROBE.sub -o public_html/$PROBE;" || true
+            GOT=$(curl -fsS --max-time 20 "$SITE_URL/$PROBE" 2>/dev/null | tr -d '[:space:]' || true)
+            ftpcmd "rm -f $PROBE; rm -f public_html/$PROBE;" || true
+            case "$GOT" in
+              root) DIR="./" ;;
+              sub)  DIR="public_html/" ;;
+              *) echo "::error::Couldn't tell which folder $SITE_URL serves (got: '$GOT'). Set repository variable FTP_SERVER_DIR to ./ or public_html/ and re-run."; exit 1 ;;
+            esac
+          fi
+          echo "Web root on FTP: $DIR"
+
+          ftpcmd "mkdir -p -f $DIR; mirror -R --verbose --parallel=1 --no-perms --exclude-glob config.sample.php ./public/ $DIR;"
+          echo "Uploaded to $DIR"
+
+          # If the web root is the login folder, an earlier deploy put a copy in a nested public_html/. Remove that copy.
+          if [ "$DIR" = "./" ]; then
+            if ftpcmd "cls -1 public_html/hosted.js >/dev/null;" 2>/dev/null; then
+              ftpcmd "rm -r -f public_html;" && echo "Removed the misplaced nested public_html/ copy"
+            fi
           fi
