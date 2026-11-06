@@ -9,6 +9,10 @@ on:
         description: "Load sample data (Block A–D) after deploying"
         type: boolean
         default: false
+      clear_data:
+        description: "DELETE all blocks, rooms, assets and movements (masters are kept)"
+        type: boolean
+        default: false
 
 concurrency:
   group: deploy-hostinger
@@ -116,3 +120,14 @@ jobs:
         run: |
           KEY=$(python3 -c "import hmac,hashlib,os;print(hmac.new(os.environ['DB_PASS'].encode(),b'asset-tracker-seed',hashlib.sha256).hexdigest())")
           curl -fsS --max-time 60 "$SITE_URL/api/index.php?a=seed&key=$KEY"; echo
+
+      # Permanently deletes blocks, rooms, assets and movements. Runs only when started manually with
+      # "DELETE all…" ticked, or for a pushed commit whose message contains [clear-data].
+      - name: Clear data (blocks, rooms, assets, movements)
+        if: env.FTP_SERVER != '' && (inputs.clear_data || contains(github.event.head_commit.message, '[clear-data]'))
+        env:
+          DB_PASS: ${{ secrets.DB_PASS }}
+          SITE_URL: ${{ vars.SITE_URL || 'https://assettracker.bizskilledu.com' }}
+        run: |
+          KEY=$(python3 -c "import hmac,hashlib,os;print(hmac.new(os.environ['DB_PASS'].encode(),b'asset-tracker-clear',hashlib.sha256).hexdigest())")
+          curl -fsS --max-time 60 "$SITE_URL/api/index.php?a=clear&key=$KEY"; echo

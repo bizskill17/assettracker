@@ -362,6 +362,22 @@ try {
             out(['added' => seedSample(db())]);
         }
 
+        case 'clear': {
+            // Deletes all blocks, rooms, assets and movements. Masters (users, item types, vendors,
+            // categories, reasons) are kept. Only the deploy workflow can call this, with a key derived from DB_PASS.
+            $key = (string) ($_GET['key'] ?? '');
+            if ($key === '' || !hash_equals(hash_hmac('sha256', 'asset-tracker-clear', DB_PASS), $key)) {
+                fail('forbidden', 'Not allowed.', 403);
+            }
+            $done = [];
+            foreach (['movements', 'assets', 'rooms', 'blocks'] as $t) {
+                $done[$t] = db()->exec("DELETE FROM `$t`");
+            }
+            // Users assigned to a deleted block become "All blocks".
+            db()->exec("UPDATE users SET block_id = ''");
+            out(['deleted' => $done]);
+        }
+
         default:
             fail('invalid_argument', 'Unknown action.', 404);
     }
