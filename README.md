@@ -23,27 +23,23 @@ public/                 ← uploaded to your site's public_html
 2. Create a database and a database user, and note all three: database name, user and password. On Hostinger they look like `u123456789_assets`.
 3. You don't need to run any SQL. The tables are created automatically the first time the app opens.
 
-### 2. Turn on SSH (hPanel)
-1. Go to **Advanced → SSH Access** and click **Enable**.
-2. Note the **IP**, **Port** (usually `65002`) and **Username** (like `u380752258`). Set an SSH password on the same page.
-
-> Deploys use SSH + rsync. Plain FTP from GitHub to Hostinger tends to be cut off (`ECONNRESET`), so FTP is kept only as a fallback.
+### 2. Get the FTP details (hPanel → Files → FTP Accounts)
+Note the **FTP IP (hostname)** and **FTP username**. If you don't know the password, use **Change FTP password**. Files are uploaded into `public_html/`, the "Folder to upload files" shown on that page.
 
 ### 3. Add GitHub secrets
 In this repo, go to **Settings → Secrets and variables → Actions → New repository secret** and add:
 
 | Secret | Value |
 |---|---|
-| `SSH_HOST` | SSH IP from step 2 |
-| `SSH_PORT` | `65002` |
-| `SSH_USERNAME` | SSH username from step 2 |
-| `SSH_PASSWORD` | SSH password from step 2 |
+| `FTP_SERVER` | FTP IP, without `ftp://` |
+| `FTP_USERNAME` | FTP username |
+| `FTP_PASSWORD` | FTP password |
 | `DB_HOST` | `localhost` |
 | `DB_NAME` | database name from step 1 |
 | `DB_USER` | database user from step 1 |
 | `DB_PASS` | database password from step 1 |
 
-Files go to `domains/assettracker.bizskilledu.com/public_html/`. For another domain, add a repository **variable** `DEPLOY_PATH` with that site's path.
+The workflow uploads with `lftp` in passive mode. It tries plain FTP first, then FTP over TLS.
 
 ### 4. Deploy
 - Go to **Actions → Deploy to Hostinger → Run workflow**, or push any change to `main`.
