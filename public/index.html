@@ -451,7 +451,7 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
     <div class="mchips" id="masterChips"></div>
     <div class="filters" style="margin-bottom:10px">
       <input type="search" id="xq" placeholder="Search…" aria-label="Search master">
-      <span class="sub" id="masterHint"></span>
+      
       <span class="actions" style="margin-left:auto">
         <button class="btn small" id="btnBulkRooms" type="button" hidden>Bulk add rooms</button>
         <button class="btn small primary pageadd" id="btnAddMaster" type="button">+ Add</button>
@@ -869,7 +869,7 @@ function renderMasters(){
     .map(([href,i,l,h,n])=>`<a class="mitem" href="${href}"><span class="ico">${ICO[i]}</span><span class="grow"><b>${esc(l)}</b> <span class="sub">(${n})</span><div class="sub">${esc(h)}</div></span><span class="chev">›</span></a>`).join("");
   $("masterChips").innerHTML=Object.entries(MASTERS).map(([k,m])=>`<button class="bchip" type="button" data-master="${k}" aria-pressed="${S.master===k}">${esc(m.label)} <b>${S[m.coll].size}</b></button>`).join("")+
     `<a class="bchip" href="#blocks" style="text-decoration:none;color:inherit">Blocks <b>${S.blocks.size}</b></a>`;
-  const M=MASTERS[S.master];$("masterHint").textContent=M.hint;$("btnBulkRooms").hidden=!(S.master==="rooms"&&S.canWrite);
+  const M=MASTERS[S.master];$("btnBulkRooms").hidden=!(S.master==="rooms"&&S.canWrite);
   $("btnAddMaster").textContent=`+ Add ${M.one}`;$("btnAddMaster").hidden=!S.canWrite;
   if(!S.loaded[M.coll]){$("masterList").innerHTML=`<div class="list"><div class="empty">Loading…</div></div>`;return}
   const q=$("xq").value.trim().toLowerCase();
