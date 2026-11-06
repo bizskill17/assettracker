@@ -550,7 +550,7 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
       <div class="field"><label for="aTag">Asset tag <span class="req">*</span></label><input id="aTag" required autocomplete="off"><span class="hint" id="aTagHint" hidden></span></div>
       <div class="field"><label for="aStatus">Status <span class="req">*</span></label><select id="aStatus"></select></div>
       <div class="field"><label for="aCond">Condition <span class="req">*</span></label><select id="aCond"><option>Good</option><option>Fair</option><option>Poor</option><option>Damaged</option></select></div>
-      <div class="field"><label for="aVendor">Supplier</label><select id="aVendor"></select></div>
+      <div class="field"><label for="aVendor">Supplier</label><div class="withadd"><select id="aVendor"></select><button type="button" class="addmini" id="aVendorAdd" aria-label="Add a new supplier" title="Add a new supplier"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button></div></div>
       <div class="field full"><label for="aNotes">Notes</label><textarea id="aNotes" placeholder="Serial no., purchase date, bill no.…"></textarea></div>
     </div>
     <div id="assetHistWrap" hidden>
@@ -1153,6 +1153,10 @@ $("aType").addEventListener("change",()=>{const t=S.itemTypes.get($("aType").val
   if(t){$("aName").value=t.name;if(t.category){if(![...$("aCat").options].some(o=>o.value===t.category))$("aCat").insertAdjacentHTML("beforeend",`<option>${esc(t.category)}</option>`);$("aCat").value=t.category;}}});
 $("aTypeAdd").addEventListener("click",()=>{if(!needDb())return;
   openMaster(null,"itemTypes",id=>{let n=0;const wait=setInterval(()=>{if(S.itemTypes.has(id)||++n>40){clearInterval(wait);if(S.itemTypes.has(id)){fillItemTypes(id);$("aType").dispatchEvent(new Event("change",{bubbles:true}));toast("Item added and selected");}}},100);});});
+function fillVendors(val){opts($("aVendor"),vendorList("Supplier").map(v=>({v:v.id,t:v.name})),"— None —");$("aVendor").value=val||"";}
+$("aVendorAdd").addEventListener("click",()=>{if(!needDb())return;
+  openMaster(null,"vendors",id=>{let n=0;const wait=setInterval(()=>{if(S.vendors.has(id)||++n>40){clearInterval(wait);if(S.vendors.has(id)){fillVendors(id);$("aVendor").dispatchEvent(new Event("change",{bubbles:true}));toast("Supplier added and selected");}}},100);});
+  $("masterTitle").textContent="Add supplier";});
 $("aBlock").addEventListener("change",()=>{$("assetErr").textContent="";setPicker($("aRoomSel"),$("aRoom"),roomOpts($("aBlock").value),"");suggestTag();});
 $("aTag").addEventListener("input",()=>{autoTag=false;});
 $("formAsset").addEventListener("submit",async e=>{e.preventDefault();if(!needDb())return;
