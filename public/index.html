@@ -295,6 +295,7 @@ a.ac-name{color:var(--accent);text-decoration:none}
 .pick{display:flex;flex-direction:column;gap:6px}
 .pick input[hidden]{display:none}
 .hint{font-size:12px;color:var(--muted)}
+.req{color:var(--bad)}
 .progress{font-size:13px;color:var(--muted)}
 .side{display:none}
 .brand{font-family:var(--display);font-size:20px;font-weight:700;padding:4px 10px 12px;line-height:1.15}
@@ -538,7 +539,7 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
       <div class="field"><label for="aCat">Category</label><select id="aCat"></select></div>
       <div class="field full"><label for="aName">Item description</label><input id="aName" required placeholder="e.g. Ceiling fan, Usha 48in"></div>
       <div class="field"><label for="aBlock">Block / location</label><select id="aBlock"></select></div>
-      <div class="field"><label for="aRoomSel">Room no.</label><div class="pick"><select id="aRoomSel"></select><input id="aRoom" placeholder="Type room or spot" hidden></div></div>
+      <div class="field"><label for="aRoomSel">Room no. <span class="req">*</span></label><div class="pick"><select id="aRoomSel"></select><input id="aRoom" placeholder="Type room or spot" hidden></div></div>
       <div class="field"><label for="aTag">Asset tag</label><input id="aTag" required placeholder="e.g. A-FAN-014"><span class="hint" id="aTagHint"></span></div>
       <div class="field"><label for="aStatus">Status</label><select id="aStatus"></select></div>
       <div class="field"><label for="aCond">Condition</label><select id="aCond"><option>Good</option><option>Fair</option><option>Poor</option><option>Damaged</option></select></div>
@@ -577,7 +578,7 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
           <input id="mTime" type="time" aria-label="Time">
         </div></div>
       <div class="field"><label for="mToBlock">To block / location</label><select id="mToBlock"></select></div>
-      <div class="field"><label for="mRoomSel">To room no.</label><div class="pick"><select id="mRoomSel"></select><input id="mToRoom" placeholder="Type room or spot" hidden></div></div>
+      <div class="field"><label for="mRoomSel">To room no. <span class="req">*</span></label><div class="pick"><select id="mRoomSel"></select><input id="mToRoom" placeholder="Type room or spot" hidden></div></div>
       <div class="field"><label for="mStatusIn">Status after move</label><select id="mStatusIn"></select></div>
       <div class="field"><label for="mBySel">Handled by</label><div class="pick"><select id="mBySel"></select><input id="mBy" placeholder="Type name" hidden></div></div>
       <div class="field full"><label for="mVendor">Vendor / contractor <span class="hint">(optional)</span></label><select id="mVendor"></select></div>
@@ -1154,6 +1155,7 @@ $("aTag").addEventListener("input",()=>{autoTag=false;});
 $("formAsset").addEventListener("submit",async e=>{e.preventDefault();if(!needDb())return;
   const tag=$("aTag").value.trim().toUpperCase(),name=$("aName").value.trim();
   if(!tag||!name){$("assetErr").textContent="Tag and item description are required.";return}
+  if(!pickerVal($("aRoomSel"),$("aRoom"))){$("assetErr").textContent="Choose a room no.";return}
   const dup=[...S.assets.entries()].find(([id,a])=>id!==editingAsset&&String(a.tag).toUpperCase()===tag);
   if(dup){$("assetErr").textContent=`Tag ${tag} is already used by ${dup[1].name}.`;return}
   const body={tag,name,itemTypeId:$("aType").value,category:$("aCat").value,blockId:$("aBlock").value,room:pickerVal($("aRoomSel"),$("aRoom")),status:$("aStatus").value,condition:$("aCond").value,supplierId:$("aVendor").value,notes:$("aNotes").value.trim(),updatedAt:Date.now()};
@@ -1215,6 +1217,7 @@ $("formMove").addEventListener("submit",async e=>{e.preventDefault();if(!needDb(
   pickMoveAsset();const a=S.assets.get(moveAssetId);
   if(!a){$("moveErr").textContent="Choose an asset from the list.";return}
   const toBlockId=$("mToBlock").value,toRoom=pickerVal($("mRoomSel"),$("mToRoom")),handledBy=pickerVal($("mBySel"),$("mBy"));
+  if(!toRoom){$("moveErr").textContent="Choose the room no. it's moving to.";return}
   if(!handledBy){$("moveErr").textContent="Choose the user who handled the movement.";return}
   const dmy=parseDMY($("mDate").value);
   if(!dmy){$("moveErr").textContent="Enter the date as dd/mm/yyyy, for example 06/11/2026.";return}
