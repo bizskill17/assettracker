@@ -14,22 +14,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
+      SSH_HOST: ${{ secrets.SSH_HOST }}
       FTP_SERVER: ${{ secrets.FTP_SERVER }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH || 'domains/assettracker.bizskilledu.com/public_html/' }}
     steps:
       - name: Get latest code
         uses: actions/checkout@v4
 
       - name: Check that secrets are set
-        if: env.FTP_SERVER == ''
+        if: env.SSH_HOST == '' && env.FTP_SERVER == ''
         run: |
-          echo "::warning::Deployment skipped. Add FTP_SERVER, FTP_USERNAME, FTP_PASSWORD, DB_HOST, DB_NAME, DB_USER and DB_PASS under Settings → Secrets and variables → Actions, then re-run this workflow."
+          echo "::warning::Deployment skipped. Add SSH_HOST, SSH_PORT, SSH_USERNAME, SSH_PASSWORD and DB_HOST, DB_NAME, DB_USER, DB_PASS under Settings → Secrets and variables → Actions, then re-run this workflow."
 
       - name: Check PHP syntax
-        if: env.FTP_SERVER != ''
         run: for f in public/api/*.php; do php -l "$f"; done
 
       - name: Write database config from secrets
-        if: env.FTP_SERVER != ''
+        if: env.SSH_HOST != '' || env.FTP_SERVER != ''
         env:
           DB_HOST: ${{ secrets.DB_HOST }}
           DB_NAME: ${{ secrets.DB_NAME }}
@@ -43,31 +44,23 @@ jobs:
           open("public/api/config.php", "w").write("\n".join(lines) + "\n")
           PY
 
+      # Preferred: SSH + rsync (one encrypted connection; works where FTP data connections are blocked)
+      - name: Upload to Hostinger via SSH (rsync)
+        if: env.SSH_HOST != ''
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+          SSH_PORT: ${{ secrets.SSH_PORT || '65002' }}
+          SSH_USER: ${{ secrets.SSH_USERNAME }}
+        run: |
+          sudo apt-get install -y -q sshpass >/dev/null
+          RSH="sshpass -e ssh -p $SSH_PORT -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20"
+          $RSH "$SSH_USER@$SSH_HOST" "mkdir -p '$DEPLOY_PATH'"
+          rsync -rlvz --chmod=D755,F644 --exclude 'api/config.sample.php' -e "$RSH" ./public/ "$SSH_USER@$SSH_HOST:$DEPLOY_PATH"
+          echo "Deployed to $DEPLOY_PATH"
+
+      # Fallback: FTPS, used only when SSH secrets are not set
       - name: Upload to Hostinger via FTPS
-        id: upload1
-        if: env.FTP_SERVER != ''
-        continue-on-error: true
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
-          port: 21
-          security: loose
-          local-dir: ./public/
-          server-dir: ${{ vars.FTP_SERVER_DIR || 'public_html/' }}
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/config.sample.php
-
-      - name: Wait before retry
-        if: env.FTP_SERVER != '' && steps.upload1.outcome == 'failure'
-        run: sleep 20
-
-      - name: Retry upload (FTPS)
-        if: env.FTP_SERVER != '' && steps.upload1.outcome == 'failure'
+        if: env.SSH_HOST == '' && env.FTP_SERVER != ''
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
