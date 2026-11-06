@@ -815,9 +815,9 @@ const ICO={
   export:'<svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 19h16"/></svg>'};
 function renderHome(){
   const attn=scopedAssets().filter(a=>a.status==="Under repair"||a.status==="Missing").sort((a,b)=>(b.lastMovedAt||0)-(a.lastMovedAt||0));
-  $("attnList").innerHTML=!S.loaded.assets?`<div class="empty">Loading…</div>`:attn.length?attn.slice(0,6).map(a=>`<div class="arow" data-asset="${esc(a.id)}"><div class="grow"><div><span class="tag">${esc(a.tag)}</span> ${esc(a.name)}</div><div class="sub">${esc(bname(a.blockId))}${a.room?` · ${esc(a.room)}`:""} · since ${fmtDay(a.lastMovedAt)}</div></div>${pill(a.status)}</div>`).join(""):`<div class="empty">Nothing under repair or missing.</div>`;
+  $("attnList").innerHTML=!S.loaded.assets?`<div class="empty">Loading…</div>`:attn.length?attn.slice(0,6).map(a=>`<div class="arow" data-asset="${esc(a.id)}"><div class="grow"><div><span class="tag">${esc(a.tag)}</span> (${esc(a.name)})</div><div class="sub">${esc(bname(a.blockId))}${a.room?` · ${esc(a.room)}`:""} · since ${fmtDay(a.lastMovedAt)}</div></div>${pill(a.status)}</div>`).join(""):`<div class="empty">Nothing under repair or missing.</div>`;
   const rec=S.moves.filter(m=>inB(m.toBlockId)||inB(m.fromBlockId)).slice(0,6);
-  $("recentList").innerHTML=!S.loaded.movements?`<div class="empty">Loading…</div>`:rec.length?rec.map(m=>`<div class="rrow"><div class="top1"><span><span class="tag">${esc(m.assetTag)}</span> ${esc(m.assetName)}</span><span class="sub" style="white-space:nowrap">${fmtDay(m.at)}</span></div><div class="sub">${esc(bname(m.fromBlockId))}${m.fromRoom?` · ${esc(m.fromRoom)}`:""} → <b style="color:var(--ink)">${esc(bname(m.toBlockId))}${m.toRoom?` · ${esc(m.toRoom)}`:""}</b></div><div class="sub">${esc(m.reason)} · ${esc(m.handledBy||"")}</div></div>`).join(""):`<div class="empty">No movements yet.</div>`;
+  $("recentList").innerHTML=!S.loaded.movements?`<div class="empty">Loading…</div>`:rec.length?rec.map(m=>`<div class="rrow"><div class="top1"><span><span class="tag">${esc(m.assetTag)}</span> (${esc(m.assetName)})</span><span class="sub" style="white-space:nowrap">${fmtDay(m.at)}</span></div><div class="sub">${esc(bname(m.fromBlockId))}${m.fromRoom?` · ${esc(m.fromRoom)}`:""} → <b style="color:var(--ink)">${esc(bname(m.toBlockId))}${m.toRoom?` · ${esc(m.toRoom)}`:""}</b></div><div class="sub">${esc(m.reason)} · ${esc(m.handledBy||"")}</div></div>`).join(""):`<div class="empty">No movements yet.</div>`;
 }
 /* ---------- pagination (20 rows per page) ---------- */
 const PAGE=20;S.pg={};S.pgSig={};
@@ -895,7 +895,7 @@ function renderMoves(){
   const pg=paginate("moves",list,JSON.stringify([$("mq").value,selVals($("mReason")),selVals($("fRoomM")),$("mRange").value,[...S.bsel]]));
   const cards=pg.items.map(m=>`<div class="acard st-${(STATUS_CLASS[m.statusAfter]||"s-store").slice(2)}">
     <div class="ac-top"><span class="sub">${esc(fmtWhen(m.at))}</span>${m.statusAfter?pill(m.statusAfter):""}</div>
-    <div class="ac-name"><span class="tag">${esc(m.assetTag)}</span> ${esc(m.assetName)}</div>
+    <div class="ac-name"><span class="tag">${esc(m.assetTag)}</span> (${esc(m.assetName)})</div>
     <div class="ac-route"><span>${esc(bname(m.fromBlockId))}${m.fromRoom?` · ${esc(m.fromRoom)}`:""}</span><span class="arrow">→</span><b>${esc(bname(m.toBlockId))}${m.toRoom?` · ${esc(m.toRoom)}`:""}</b></div>
     <div class="ac-foot"><span class="sub">${esc(m.reason)} · ${esc(m.handledBy||"—")}${m.vendor?` · ${esc(m.vendor)}`:""}${m.notes?`<br>${esc(m.notes)}`:""}</span></div>
   </div>`).join("");
@@ -1111,7 +1111,7 @@ function suggestTag(){
 function openAsset(id){
   editingAsset=id||null;const a=id?S.assets.get(id):null;autoTag=false;
   if(!id&&!S.blocks.size){toast("Add a block first.");location.hash="#blocks";return}
-  $("assetTitle").textContent=a?`${a.tag} · ${a.name}`:"Add asset";
+  $("assetTitle").textContent=a?`${a.tag} (${a.name})`:"Add asset";
   opts($("aType"),itemTypeList().map(t=>({v:t.id,t:`${t.name} (${t.prefix})`})),"— None —");$("aType").value=a?.itemTypeId||"";
   opts($("aCat"),cats());
   opts($("aVendor"),vendorList("Supplier").map(v=>({v:v.id,t:v.name})),"— None —");$("aVendor").value=a?.supplierId||"";
@@ -1144,13 +1144,13 @@ $("formAsset").addEventListener("submit",async e=>{e.preventDefault();if(!needDb
   finally{$("btnSaveAsset").disabled=false;}
 });
 $("btnDelAsset").addEventListener("click",async()=>{const a=S.assets.get(editingAsset);if(!a||!needDb())return;
-  if(!await confirmBox("Delete asset?",`${a.tag} · ${a.name} will be removed from the register. Its past movements stay in the log.`,"Delete"))return;
+  if(!await confirmBox("Delete asset?",`${a.tag} (${a.name}) will be removed from the register. Its past movements stay in the log.`,"Delete"))return;
   try{await S.db.doc("assets/"+editingAsset).delete();closeDlg("dlgAsset");toast("Asset deleted");}catch(err){$("assetErr").textContent=errText(err);}
 });
 
 /* ---------- move form ---------- */
 let moveAssetId=null;
-function assetLabel(a){return `${a.tag} — ${a.name}`;}
+function assetLabel(a){return `${a.tag} (${a.name})`;}
 function staffOpts(){return activeStaff().map(s=>({v:s.name,t:s.name+(s.role?` · ${s.role}`:"")}));}
 function openMove(id){
   if(!S.assets.size){toast("Add an asset first.");return}
