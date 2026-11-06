@@ -208,6 +208,21 @@ select.ss-native{display:none!important}
 .pickbtn{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--muted);cursor:pointer;padding:4px;border-radius:6px;display:grid;place-items:center}
 .pickbtn:hover{color:var(--accent);background:var(--accent-soft)}
 .pickbtn svg{width:18px;height:18px}
+.acards{display:none}
+.acard{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--idle);border-radius:4px 12px 12px 4px;padding:12px 14px;display:flex;flex-direction:column;gap:4px}
+.acard[data-asset]{cursor:pointer}
+.acard.st-inuse{border-left-color:var(--ok)}
+.acard.st-repair{border-left-color:var(--warn)}
+.acard.st-missing,.acard.st-disposed{border-left-color:var(--bad)}
+.ac-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.ac-name{font-weight:600;font-size:16px;line-height:1.3;margin-top:2px}
+.ac-name .tag{font-weight:500}
+.ac-loc,.ac-route{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:14px;flex-wrap:wrap}
+.ac-route b{color:var(--ink);font-weight:600}
+.ac-loc svg{width:16px;height:16px;flex:none}
+.ac-foot{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;border-top:1px solid var(--line);margin-top:8px;padding-top:8px}
+.ac-foot .sub{line-height:1.45}
+.ac-foot .btn svg{width:16px;height:16px}
 .mchips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 .mgrid{display:grid;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}
 .mgrid:first-child{border-top:0}
@@ -286,6 +301,8 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
   .filters{display:flex;flex-direction:column;gap:8px;align-items:stretch}
   .srow{flex:none}
   .fbtn{display:grid}
+  .desk-only{display:none}
+  .acards{display:flex;flex-direction:column;gap:10px}
   .ss.mob-only{display:flex}
   .fpanel{display:none}
   .filters.fopen .fpanel{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px;background:var(--surface);border:1px solid var(--line);border-radius:10px}
@@ -714,7 +731,13 @@ function renderAssets(){
     {h:"Condition",v:a=>esc(a.condition||"")},
     {h:"Last moved",cls:"nowrap",v:a=>fmtDay(a.lastMovedAt)},
     {h:"",cls:"t-act",v:a=>S.canWrite?`<button class="btn small" type="button" data-move="${esc(a.id)}">Move</button>`:""}];
-  $("assetList").innerHTML=tableHTML(cols,list,a=>` class="click" data-asset="${esc(a.id)}"`);
+  const cards=list.map(a=>`<div class="acard st-${(STATUS_CLASS[a.status]||"s-store").slice(2)}" data-asset="${esc(a.id)}">
+    <div class="ac-top"><span class="tag">${esc(a.tag)}</span>${pill(a.status)}</div>
+    <div class="ac-name">${esc(a.name)}</div>
+    <div class="ac-loc"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span>${esc(bname(a.blockId))}${a.room?` · ${esc(a.room)}`:""}</span></div>
+    <div class="ac-foot"><span class="sub">${esc(a.category)}${a.condition?` · ${esc(a.condition)}`:""}<br>${a.lastMovedAt?"Moved "+fmtDate(a.lastMovedAt):"Not moved yet"}</span>${S.canWrite?`<button class="btn small" type="button" data-move="${esc(a.id)}">Move <svg viewBox="0 0 24 24"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg></button>`:""}</div>
+  </div>`).join("");
+  $("assetList").innerHTML=`<div class="desk-only">${tableHTML(cols,list,a=>` class="click" data-asset="${esc(a.id)}"`)}</div><div class="acards">${cards}</div>`;
 }
 function filteredMoves(){
   const q=$("mq").value.trim().toLowerCase(),r=$("mReason").value,days=+$("mRange").value;
@@ -740,7 +763,13 @@ function renderMoves(){
     {h:"Handled by",v:m=>esc(m.handledBy||"—")},
     {h:"Vendor",v:m=>esc(m.vendor||"—")},
     {h:"Notes",cls:"t-notes",v:m=>esc(m.notes||"")}];
-  $("moveList").innerHTML=tableHTML(cols,list);
+  const cards=list.map(m=>`<div class="acard st-${(STATUS_CLASS[m.statusAfter]||"s-store").slice(2)}">
+    <div class="ac-top"><span class="sub">${esc(fmtWhen(m.at))}</span>${m.statusAfter?pill(m.statusAfter):""}</div>
+    <div class="ac-name"><span class="tag">${esc(m.assetTag)}</span> ${esc(m.assetName)}</div>
+    <div class="ac-route"><span>${esc(bname(m.fromBlockId))}${m.fromRoom?` · ${esc(m.fromRoom)}`:""}</span><span class="arrow">→</span><b>${esc(bname(m.toBlockId))}${m.toRoom?` · ${esc(m.toRoom)}`:""}</b></div>
+    <div class="ac-foot"><span class="sub">${esc(m.reason)} · ${esc(m.handledBy||"—")}${m.vendor?` · ${esc(m.vendor)}`:""}${m.notes?`<br>${esc(m.notes)}`:""}</span></div>
+  </div>`).join("");
+  $("moveList").innerHTML=`<div class="desk-only">${tableHTML(cols,list)}</div><div class="acards">${cards}</div>`;
 }
 function renderBlocks(){
   const bl=blockList();
