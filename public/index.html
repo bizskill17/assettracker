@@ -266,6 +266,18 @@ a.ac-name{color:var(--accent);text-decoration:none}
 .pgb:disabled{opacity:.45;cursor:not-allowed}
 .pg-gap{padding:0 4px;color:var(--muted)}
 [data-pgtop]{display:block;scroll-margin-top:70px}
+.acard.cmp{flex-direction:row;align-items:center;gap:10px;padding:8px 10px}
+.cm-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.cm-l1{display:flex;align-items:center;gap:6px;min-width:0}
+.cm-l1 .pill{margin-left:auto}
+.cm-l1 .tag{flex:none}
+.cm-nm{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.cm-l2{font-size:12.5px;line-height:1.4;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.acard.cmp .pill{flex:none}
+.cm-ib{width:34px;height:34px;flex:none;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--accent);display:grid;place-items:center;cursor:pointer}
+.cm-ib:hover{border-color:var(--accent)}
+.cm-ib svg{width:18px;height:18px}
+.acards:has(.cmp){gap:8px}
 .mchips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
 .mgrid{display:grid;gap:12px;align-items:center;padding:10px 14px;border-top:1px solid var(--line)}
 .mgrid:first-child{border-top:0}
@@ -860,12 +872,11 @@ function renderAssets(){
     {h:"Last moved",cls:"nowrap",v:a=>fmtDay(a.lastMovedAt)},
     {h:"",cls:"t-act",v:a=>S.canWrite?`<button class="btn small" type="button" data-move="${esc(a.id)}">Move</button>`:""}];
   const pg=paginate("assets",list,JSON.stringify([q,cat,st,rm,[...S.bsel]]));
-  const cards=pg.items.map(a=>`<div class="acard st-${(STATUS_CLASS[a.status]||"s-store").slice(2)}" data-asset="${esc(a.id)}">
-    <div class="ac-top"><span class="tag">${esc(a.tag)}</span>${pill(a.status)}</div>
-    <div class="ac-name">${esc(a.name)}</div>
-    <div class="ac-loc"><svg viewBox="0 0 24 24"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span>${esc(bname(a.blockId))}${a.room?` · ${esc(a.room)}`:""}</span></div>
-    <div class="ac-foot"><span class="sub">${esc(a.category)}${a.condition?` · ${esc(a.condition)}`:""}<br>${a.lastMovedAt?"Moved "+fmtDate(a.lastMovedAt):"Not moved yet"}</span>${S.canWrite?`<button class="btn small" type="button" data-move="${esc(a.id)}">Move <svg viewBox="0 0 24 24"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg></button>`:""}</div>
-  </div>`).join("");
+  const cards=pg.items.map(a=>{const l2=[bname(a.blockId)+(a.room?" · "+a.room:""),a.category,a.condition,a.lastMovedAt?fmtDate(a.lastMovedAt):""].filter(Boolean).join(" · ");
+    return `<div class="acard cmp st-${(STATUS_CLASS[a.status]||"s-store").slice(2)}" data-asset="${esc(a.id)}">
+    <div class="cm-main"><div class="cm-l1"><span class="tag">${esc(a.tag)}</span><span class="cm-nm">(${esc(a.name)})</span>${pill(a.status)}</div><div class="cm-l2">${esc(l2)}</div></div>
+    ${S.canWrite?`<button class="cm-ib" type="button" data-move="${esc(a.id)}" aria-label="Move ${esc(a.tag)}" title="Move"><svg viewBox="0 0 24 24"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg></button>`:""}
+  </div>`;}).join("");
   $("assetList").innerHTML=`<span data-pgtop="assets"></span><div class="desk-only">${tableHTML(cols,pg.items,a=>` class="click" data-asset="${esc(a.id)}"`,pg.start)}</div><div class="acards">${cards}</div>${pagerHTML(pg)}`;
 }
 function filteredMoves(){
@@ -893,12 +904,11 @@ function renderMoves(){
     {h:"Vendor",v:m=>esc(m.vendor||"—")},
     {h:"Notes",cls:"t-notes",v:m=>esc(m.notes||"")}];
   const pg=paginate("moves",list,JSON.stringify([$("mq").value,selVals($("mReason")),selVals($("fRoomM")),$("mRange").value,[...S.bsel]]));
-  const cards=pg.items.map(m=>`<div class="acard st-${(STATUS_CLASS[m.statusAfter]||"s-store").slice(2)}">
-    <div class="ac-top"><span class="sub">${esc(fmtWhen(m.at))}</span>${m.statusAfter?pill(m.statusAfter):""}</div>
-    <div class="ac-name"><span class="tag">${esc(m.assetTag)}</span> (${esc(m.assetName)})</div>
-    <div class="ac-route"><span>${esc(bname(m.fromBlockId))}${m.fromRoom?` · ${esc(m.fromRoom)}`:""}</span><span class="arrow">→</span><b>${esc(bname(m.toBlockId))}${m.toRoom?` · ${esc(m.toRoom)}`:""}</b></div>
-    <div class="ac-foot"><span class="sub">${esc(m.reason)} · ${esc(m.handledBy||"—")}${m.vendor?` · ${esc(m.vendor)}`:""}${m.notes?`<br>${esc(m.notes)}`:""}</span></div>
-  </div>`).join("");
+  const cards=pg.items.map(m=>{const from=bname(m.fromBlockId)+(m.fromRoom?" · "+m.fromRoom:""),to=bname(m.toBlockId)+(m.toRoom?" · "+m.toRoom:"");
+    const l2=[fmtWhen(m.at),`${from} → ${to}`,m.reason,m.handledBy].filter(Boolean).join(" · ");
+    return `<div class="acard cmp st-${(STATUS_CLASS[m.statusAfter]||"s-store").slice(2)}">
+    <div class="cm-main"><div class="cm-l1"><span class="tag">${esc(m.assetTag)}</span><span class="cm-nm">(${esc(m.assetName)})</span>${m.statusAfter?pill(m.statusAfter):""}</div><div class="cm-l2" title="${esc(l2+(m.notes?" · "+m.notes:""))}">${esc(l2)}</div></div>
+  </div>`;}).join("");
   $("moveList").innerHTML=`<span data-pgtop="moves"></span><div class="desk-only">${tableHTML(cols,pg.items,null,pg.start)}</div><div class="acards">${cards}</div>${pagerHTML(pg)}`;
 }
 function renderBlocks(){
