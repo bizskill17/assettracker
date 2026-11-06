@@ -696,7 +696,8 @@ function renderStrip(){
   const items=[{id:"all",name:"All blocks",n:S.assets.size},...blockList().map(b=>({id:b.id,name:b.name,n:counts[b.id]||0}))];
   const html=items.map(b=>`<option value="${esc(b.id)}">${esc(b.name)} (${b.n})</option>`).join("");
   for(const id of ["fBlockH","fBlockA","fBlockM"]){$(id).innerHTML=html;$(id).value=S.block;}
-  $("subtitle").textContent=S.block==="all"?"":`Showing ${bname(S.block)} only.`;$("subtitle").hidden=S.block==="all";
+  const scoped=["assets","movements","blocks","home"].includes(S.tab)||(S.tab==="masters"&&["rooms","staff"].includes(S.master));
+  $("subtitle").textContent=S.block==="all"||!scoped?"":`Showing ${bname(S.block)} only.`;$("subtitle").hidden=S.block==="all"||!scoped;
 }
 const ICO={
   home:'<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
@@ -781,7 +782,7 @@ function renderMoves(){
   $("moveList").innerHTML=`<div class="desk-only">${tableHTML(cols,list)}</div><div class="acards">${cards}</div>`;
 }
 function renderBlocks(){
-  const bl=blockList();
+  const bl=blockList().filter(b=>S.block==="all"||b.id===S.block);
   if(!S.loaded.blocks){$("blockCards").innerHTML=`<div class="list"><div class="empty">Loading…</div></div>`;return}
   if(!bl.length){$("blockCards").innerHTML=`<div class="list"><div class="empty">No blocks yet. Use “Add block” to add your hostel blocks.</div></div>`;return}
   const week=Date.now()-7*864e5;
@@ -822,7 +823,7 @@ const MASTERS={
   staff:{label:"Users",one:"user",coll:"staff",hint:"People who use the tracker and handle movements. Active users appear in the “Handled by” list.",cols:"1.3fr 1fr 1fr 1fr 1.4fr .6fr 90px",
     fields:[{k:"name",l:"Name",req:1},{k:"role",l:"Role",t:"select",o:()=>ROLES},{k:"blockId",l:"Block in charge",t:"block",blank:"All blocks"},{k:"phone",l:"Phone",ph:"Mobile number"},{k:"email",l:"Email",ph:"name@example.com"},{k:"active",l:"Active",t:"select",o:()=>["Yes","No"]},...(window.HOSTED?[{k:"password",l:"Login password",t:"password",ph:"Set or change; blank keeps it",full:1}]:[])],
     show:[["Name",s=>s.name],["Role",s=>s.role],["Block",s=>s.blockId?bname(s.blockId):"All blocks"],["Phone",s=>s.phone],["Email",s=>s.email||""],["Active",s=>(s.active||"Yes")+(window.HOSTED&&s.hasLogin?" · login":"")]],
-    list:()=>entries(S.staff).sort((a,b)=>ncmp(a.name,b.name)),
+    list:()=>entries(S.staff).filter(u=>S.block==="all"||!u.blockId||u.blockId===S.block).sort((a,b)=>ncmp(a.name,b.name)),
     dup:(b,id)=>entries(S.staff).find(s=>s.id!==id&&s.name.toLowerCase()===b.name.toLowerCase())&&`${b.name} is already a user.`},
   itemTypes:{label:"Item types",one:"item type",coll:"itemTypes",hint:"Kinds of items. The tag prefix builds asset tags such as A-FAN-001.",cols:"1.6fr 1fr .8fr .7fr 90px",
     fields:[{k:"name",l:"Item type",req:1,ph:"e.g. Ceiling fan 48in"},{k:"category",l:"Category",t:"select",o:cats},{k:"prefix",l:"Tag prefix",req:1,ph:"e.g. FAN",upper:1,max:5}],
@@ -956,7 +957,7 @@ function setTab(h){let t=h||"home",sub=null;
   $("abAdd").classList.toggle("ghost",!S.canWrite||!(t==="assets"||t==="blocks"||(t==="masters"&&sub)||t==="home"));
   const dl={assets:"+ Add asset",blocks:"+ Add block",masters:"+ Add "+MASTERS[S.master].one,movements:"⇄ Log a movement"}[t];
   $("deskAdd").textContent=dl||"";$("deskAdd").hidden=!dl||!S.canWrite||((t==="blocks"||t==="masters")&&document.body.classList.contains("not-admin"));
-  renderSide();renderMasters();window.scrollTo(0,0);}
+  renderSide();renderMasters();renderStrip();window.scrollTo(0,0);}
 MQ.addEventListener?.("change",()=>setTab(location.hash.slice(1)));
 window.addEventListener("hashchange",()=>setTab(location.hash.slice(1)));
 
