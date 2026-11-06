@@ -138,9 +138,15 @@
   .auth h1{font-size:24px}
   .auth p{margin:0;color:var(--muted);font-size:14px}
   .auth .btn{justify-content:center;padding:11px}
-  .userchip{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:13px;color:var(--muted);padding:10px 10px 0;margin-top:auto}
-  .userchip b{color:var(--ink);font-weight:600}
-  .userchip button{background:none;border:0;color:var(--accent);font-weight:600;cursor:pointer;padding:4px}
+  .userchip{margin-top:auto;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;margin-left:4px;margin-right:4px}
+  .uc-who{display:flex;align-items:center;gap:10px;min-width:0}
+  .uc-av{width:38px;height:38px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:700;font-size:14px;flex:none}
+  .uc-txt{display:flex;flex-direction:column;min-width:0}
+  .uc-txt b{color:var(--ink);font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .uc-txt .r{font-size:12px;color:var(--muted)}
+  .uc-out{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:9px;border:0;border-radius:8px;background:#d93c3c;color:#fff;font:inherit;font-weight:600;cursor:pointer}
+  .uc-out:hover{background:#c22f2f}
+  .uc-out svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .homeuser{display:none}
   @media (max-width:999px){.homeuser{display:flex;padding:4px 2px 0}}
   body.not-admin .pageadd, body.not-admin [data-editmaster], body.not-admin #btnBulkRooms, body.not-admin [data-editblock], body.not-admin #btnAddMaster{display:none!important}
@@ -201,12 +207,13 @@
   function userChips() {
     document.querySelectorAll(".userchip").forEach((n) => n.remove());
     if (!me) return;
-    const html = `<div class="userchip"><span>Signed in as <b></b> · <span class="r"></span></span><button type="button">Log out</button></div>`;
+    const html = `<div class="userchip"><div class="uc-who"><span class="uc-av"></span><span class="uc-txt"><b></b><span class="r"></span></span></div><button type="button" class="uc-out"><svg viewBox="0 0 24 24"><path d="M14 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-3M9 12h12M18 9l3 3-3 3"/></svg>Log out</button></div>`;
     const side = document.querySelector(".side");
     for (const [parent, extra] of [[side, ""]]) {
       if (!parent) continue;
       const n = el(html); if (extra) n.classList.add(extra);
       n.querySelector("b").textContent = me.name;
+      n.querySelector(".uc-av").textContent = (me.name || "?").split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("");
       n.querySelector(".r").textContent = me.role || "";
       n.querySelector("button").addEventListener("click", logout);
       parent.appendChild(n);
