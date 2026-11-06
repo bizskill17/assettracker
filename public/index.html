@@ -178,6 +178,13 @@ textarea{resize:vertical;min-height:60px}
   .tbl .t-act .rowacts{justify-content:flex-start}
   .tbl td.t-notes:empty{display:none}
 }
+.srow{display:flex;gap:8px;flex:1 1 260px;min-width:0}
+.srow input{flex:1;min-width:0}
+.fpanel{display:contents}
+.fbtn{display:none;position:relative;flex:0 0 auto;width:42px;border:1px solid var(--line);background:var(--surface);border-radius:8px;cursor:pointer;color:var(--ink);place-items:center}
+.fbtn svg{width:20px;height:20px}
+.fbtn[aria-expanded="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.fbadge{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--bad);color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center}
 .vh{position:absolute!important;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden}
 select.ss-native{display:none!important}
 .ss{display:inline-flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;cursor:pointer;text-align:left;font:inherit;color:inherit;max-width:100%}
@@ -276,9 +283,14 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
   .mod{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;cursor:pointer;color:var(--ink);font-size:12px;text-align:center;text-decoration:none;padding:4px 2px;line-height:1.2}
   .mod .ico{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
   .homecols{grid-template-columns:1fr}
-  .filters{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .filters input[type=search]{grid-column:1/-1}
-  .filters .count{grid-column:1/-1;margin-left:0}
+  .filters{display:flex;flex-direction:column;gap:8px;align-items:stretch}
+  .srow{flex:none}
+  .fbtn{display:grid}
+  .ss.mob-only{display:flex}
+  .fpanel{display:none}
+  .filters.fopen .fpanel{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:10px;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+  .fpanel .btn{grid-column:1/-1}
+  .filters .count{margin-left:0}
   .filters select,.filters .btn,.filters .ss{width:100%;justify-content:center}
   .filters .ss{justify-content:space-between;min-width:0}
   .bnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--surface);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom));justify-content:space-around;align-items:flex-end}
@@ -369,19 +381,22 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
   </section>
 
   <section id="view-assets" hidden>
-    <div class="filters">
-      <input type="search" id="q" placeholder="Search tag, item or room…" aria-label="Search assets">
-      <select id="fBlockA" class="mob-only" aria-label="Block"></select>
-      <select id="fCat" aria-label="Category"></select>
-      <select id="fStatus" aria-label="Status"></select>
+    <div class="filters" id="filtA">
+      <div class="srow"><input type="search" id="q" placeholder="Search tag, item or room…" aria-label="Search assets"><button class="fbtn" type="button" data-ftoggle="filtA" aria-expanded="false" aria-label="Show filters"><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg><span class="fbadge" hidden></span></button></div>
+      <div class="fpanel">
+        <select id="fBlockA" class="mob-only" aria-label="Block"></select>
+        <select id="fCat" aria-label="Category"></select>
+        <select id="fStatus" aria-label="Status"></select>
+      </div>
       <span class="count" id="assetCount"></span>
     </div>
     <div id="assetList"></div>
   </section>
 
   <section id="view-movements" hidden>
-    <div class="filters">
-      <input type="search" id="mq" placeholder="Search tag, item, person, vendor…" aria-label="Search movements">
+    <div class="filters" id="filtM">
+      <div class="srow"><input type="search" id="mq" placeholder="Search tag, item, person, vendor…" aria-label="Search movements"><button class="fbtn" type="button" data-ftoggle="filtM" aria-expanded="false" aria-label="Show filters"><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg><span class="fbadge" hidden></span></button></div>
+      <div class="fpanel">
       <select id="fBlockM" class="mob-only" aria-label="Block"></select>
       <select id="mReason" aria-label="Reason"></select>
       <select id="mRange" aria-label="Period">
@@ -391,6 +406,7 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
         <option value="0">All time</option>
       </select>
       <button class="btn small" id="btnExport" type="button">Export CSV</button>
+      </div>
       <span class="count" id="moveCount"></span>
     </div>
     <div id="moveList"></div>
@@ -637,7 +653,7 @@ function renderSide(){
   $("sideBlocks").innerHTML=[{id:"all",name:"All blocks",n:S.assets.size},...blockList().map(b=>({id:b.id,name:b.name,n:counts[b.id]||0}))]
     .map(b=>`<button class="sitem" type="button" data-block="${esc(b.id)}" aria-pressed="${S.block===b.id}">${esc(b.name)} <b>${b.n}</b></button>`).join("");
 }
-function render(){refreshOptions();renderSide();renderTiles();renderStrip();renderHome();renderAssets();renderMoves();renderBlocks();renderMasters();
+function render(){refreshOptions();setTimeout(updateBadges,0);renderSide();renderTiles();renderStrip();renderHome();renderAssets();renderMoves();renderBlocks();renderMasters();
   const anySample=[S.blocks,S.assets,S.rooms,S.staff,S.vendors].some(m=>[...m.values()].some(x=>x.sample));
   $("sampleNote").hidden=!(anySample&&S.canWrite);
 }
@@ -1085,8 +1101,8 @@ $("sideMove").addEventListener("click",()=>openMove(null));
 $("btnAddBlock").addEventListener("click",()=>openBlock(null));
 $("btnAddMaster").addEventListener("click",()=>openMaster(null));
 $("btnBulkRooms").addEventListener("click",openBulk);
-["q","fCat","fStatus"].forEach(id=>$(id).addEventListener("input",renderAssets));
-["mq","mReason","mRange"].forEach(id=>$(id).addEventListener("input",renderMoves));
+["q","fCat","fStatus"].forEach(id=>$(id).addEventListener("input",()=>{renderAssets();updateBadges();}));
+["mq","mReason","mRange"].forEach(id=>$(id).addEventListener("input",()=>{renderMoves();updateBadges();}));
 $("xq").addEventListener("input",renderMasters);
 
 function errText(e){const c=e&&e.code;
@@ -1096,6 +1112,15 @@ function errText(e){const c=e&&e.code;
   if(c==="quota_exceeded")return"The tracker's storage is full. Export and remove old movements to free space.";
   if(c==="resource_exhausted")return"Too many changes at once. Wait a moment and try again.";
   return"Couldn't save right now. Check your connection and try again.";}
+
+/* ---------- filter toggle (phones/tablets) ---------- */
+document.addEventListener("click",e=>{const b=e.target.closest("[data-ftoggle]");if(!b)return;
+  const f=$(b.dataset.ftoggle),open=!f.classList.contains("fopen");f.classList.toggle("fopen",open);b.setAttribute("aria-expanded",String(open));});
+function updateBadges(){
+  const nA=(S.block!=="all")+!!$("fCat").value+!!$("fStatus").value;
+  const nM=(S.block!=="all")+!!$("mReason").value+($("mRange").value!=="30");
+  for(const [id,n] of [["filtA",nA],["filtM",nM]]){const bd=$(id).querySelector(".fbadge");bd.textContent=n;bd.hidden=!n;}
+}
 
 /* ---------- searchable dropdowns ----------
    Every <select> gets a button that opens a searchable list. The native select stays in the
@@ -1108,7 +1133,7 @@ const SS=(()=>{
   function update(sel){const w=sel._ss;if(!w)return;w.querySelector(".ss-txt").textContent=label(sel)||"\u00a0";w.classList.toggle("ss-dis",sel.disabled);}
   function enhance(sel){
     if(sel._ss||sel.multiple||sel.classList.contains("vh"))return;
-    const w=document.createElement("button");w.type="button";w.className="ss";w.setAttribute("aria-haspopup","listbox");
+    const w=document.createElement("button");w.type="button";w.className="ss"+(sel.classList.contains("mob-only")?" mob-only":"");w.setAttribute("aria-haspopup","listbox");
     if(sel.getAttribute("aria-label"))w.setAttribute("aria-label",sel.getAttribute("aria-label"));
     w.innerHTML='<span class="ss-txt"></span><svg viewBox="0 0 24 24" class="ss-car"><path d="M6 9l6 6 6-6"/></svg>';
     sel.after(w);sel.classList.add("ss-native");sel._ss=w;w._sel=sel;
