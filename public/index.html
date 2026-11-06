@@ -197,6 +197,10 @@ textarea{resize:vertical;min-height:60px}
 .sitem[aria-current="page"],.sitem[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
 .sitem b{font-weight:500;color:var(--muted);font-size:12px;font-variant-numeric:tabular-nums}
 .sitem.ssub{padding-left:24px;font-size:13px}
+.sitem .si{display:flex;align-items:center;gap:10px}
+.sitem .si svg{width:18px;height:18px;flex:0 0 auto;color:var(--muted)}
+.sitem[aria-current="page"] .si svg,.sitem[aria-pressed="true"] .si svg{color:var(--accent)}
+.sidebg{position:fixed;inset:0;background:rgba(10,16,22,.45);z-index:39}
 .sideacts{display:flex;flex-direction:column;gap:6px;padding:0 4px 4px}
 .sideacts .btn{justify-content:center}
 .filters{margin-bottom:10px}
@@ -226,6 +230,10 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
   .wrap{margin:0;padding:24px 28px 60px;max-width:1240px}
 }
 @media (max-width:999px){
+  .side{display:flex;flex-direction:column;gap:2px;position:fixed;top:0;left:0;bottom:0;width:min(300px,84vw);z-index:40;background:var(--surface);border-right:1px solid var(--line);padding:18px 12px calc(24px + env(safe-area-inset-bottom));overflow-y:auto;transform:translateX(-105%);transition:transform .22s ease;box-shadow:0 0 40px rgba(0,0,0,.2)}
+  .side.open{transform:none}
+  body.drawer-open{overflow:hidden}
+  .sitem{padding:10px;font-size:15px}
   header.top,.pageadd,#view-masters .mchips{display:none}
   .mob-only{display:block}
   .wrap{padding:0 14px calc(88px + env(safe-area-inset-bottom));gap:14px}
@@ -295,9 +303,10 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
   <div class="sgroup">Filter by block</div>
   <div id="sideBlocks"></div>
 </aside>
+<div class="sidebg" id="sideBg" hidden></div>
 <div class="wrap">
   <div class="appbar">
-    <button class="iconbtn" id="abBack" type="button" aria-label="Back">‹</button>
+    <button class="iconbtn" id="abMenu" type="button" aria-label="Open menu" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
     <h1 id="abTitle">Asset Tracker</h1>
     <button class="iconbtn" id="abAdd" type="button" aria-label="Add">+</button>
   </div>
@@ -319,7 +328,6 @@ svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke
       <select id="fBlockH" aria-label="Block"></select>
     </div>
     <section class="tiles" id="tiles" aria-label="Summary"></section>
-    <div class="modgrid mob-only" id="modGrid"></div>
     <div class="notice" id="sampleNote" hidden>
       <span>You're looking at sample data. Item types, categories and reasons are defaults you keep.</span>
       <button class="btn small danger" id="btnClearSamples" type="button">Remove sample data</button>
@@ -588,9 +596,10 @@ function note(t){const el=$("statusNote");if(!t){el.hidden=true;return}el.textCo
 
 /* ---------- rendering ---------- */
 function renderSide(){
-  const tabs=[["home","Dashboard",""],["assets","Assets",S.assets.size],["movements","Movement log",S.moves.length],["blocks","Blocks",S.blocks.size]];
-  $("sideNav").innerHTML=tabs.map(([k,l,n])=>`<a class="sitem" href="#${k}" data-tab="${k}" aria-current="${S.tab===k?"page":"false"}">${esc(l)} <b>${n}</b></a>`).join("");
-  $("sideMasters").innerHTML=Object.entries(MASTERS).map(([k,m])=>`<button class="sitem ssub" type="button" data-master="${k}" aria-pressed="${S.tab==="masters"&&S.master===k}">${esc(m.label)} <b>${S[m.coll].size}</b></button>`).join("");
+  const tabs=[["home","Dashboard","",ICO.home],["assets","Assets",S.assets.size,ICO.assets],["movements","Movement log",S.moves.length,ICO.log],["blocks","Blocks",S.blocks.size,ICO.blocks]];
+  $("sideNav").innerHTML=tabs.map(([k,l,n,ic])=>`<a class="sitem" href="#${k}" data-tab="${k}" aria-current="${S.tab===k?"page":"false"}"><span class="si">${ic}${esc(l)}</span> <b>${n}</b></a>`).join("")+
+    `<button class="sitem" type="button" data-go="act:export"><span class="si">${ICO.export}Export movement log</span></button>`;
+  $("sideMasters").innerHTML=Object.entries(MASTERS).map(([k,m])=>`<button class="sitem" type="button" data-master="${k}" aria-pressed="${S.tab==="masters"&&S.master===k}"><span class="si">${ICO[k]||""}${esc(m.label)}</span> <b>${S[m.coll].size}</b></button>`).join("");
   const counts={};for(const a of S.assets.values())counts[a.blockId]=(counts[a.blockId]||0)+1;
   $("sideBlocks").innerHTML=[{id:"all",name:"All blocks",n:S.assets.size},...blockList().map(b=>({id:b.id,name:b.name,n:counts[b.id]||0}))]
     .map(b=>`<button class="sitem" type="button" data-block="${esc(b.id)}" aria-pressed="${S.block===b.id}">${esc(b.name)} <b>${b.n}</b></button>`).join("");
@@ -615,6 +624,7 @@ function renderStrip(){
   $("subtitle").textContent=S.block==="all"?"":`Showing ${bname(S.block)} only.`;$("subtitle").hidden=S.block==="all";
 }
 const ICO={
+  home:'<svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
   assets:'<svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg>',
   add:'<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
   move:'<svg viewBox="0 0 24 24"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg>',
@@ -628,10 +638,6 @@ const ICO={
   reasons:'<svg viewBox="0 0 24 24"><path d="M5 21V4M5 4h12l-2 4 2 4H5"/></svg>',
   export:'<svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M4 19h16"/></svg>'};
 function renderHome(){
-  const mods=[["Add asset","add","act:addAsset"],["Log move","move","act:move"],["Assets","assets","#assets"],["Movement log","log","#movements"],
-    ["Blocks","blocks","#blocks"],["Rooms","rooms","#masters-rooms"],["Users","staff","#masters-staff"],["Item types","itemTypes","#masters-itemTypes"],
-    ["Vendors","vendors","#masters-vendors"],["Categories","categories","#masters-categories"],["Reasons","reasons","#masters-reasons"],["Export","export","act:export"]];
-  $("modGrid").innerHTML=mods.map(([l,i,go])=>go.startsWith("#")?`<a class="mod" href="${go}"><span class="ico">${ICO[i]}</span>${esc(l)}</a>`:`<button class="mod" type="button" data-go="${go}"><span class="ico">${ICO[i]}</span>${esc(l)}</button>`).join("");
   const attn=scopedAssets().filter(a=>a.status==="Under repair"||a.status==="Missing").sort((a,b)=>(b.lastMovedAt||0)-(a.lastMovedAt||0));
   $("attnList").innerHTML=!S.loaded.assets?`<div class="empty">Loading…</div>`:attn.length?attn.slice(0,6).map(a=>`<div class="arow" data-asset="${esc(a.id)}"><div class="grow"><div><span class="tag">${esc(a.tag)}</span> ${esc(a.name)}</div><div class="sub">${esc(bname(a.blockId))}${a.room?` · ${esc(a.room)}`:""} · since ${fmtDay(a.lastMovedAt)}</div></div>${pill(a.status)}</div>`).join(""):`<div class="empty">Nothing under repair or missing.</div>`;
   const rec=S.moves.filter(m=>S.block==="all"||m.toBlockId===S.block||m.fromBlockId===S.block).slice(0,6);
@@ -834,7 +840,6 @@ function setTab(h){let t=h||"home",sub=null;
   document.querySelectorAll(".bnav [data-bn]").forEach(a=>a.setAttribute("aria-current",a.dataset.bn===t?"page":"false"));
   const title=t==="masters"&&(sub||!isMobile())?MASTERS[S.master].label:TITLES[t];
   $("abTitle").textContent=t==="home"?"Asset Tracker":title;$("deskTitle").textContent=title;
-  $("abBack").classList.toggle("ghost",t==="home");
   $("abAdd").classList.toggle("ghost",!S.canWrite||!(t==="assets"||t==="blocks"||(t==="masters"&&sub)||t==="home"));
   const dl={assets:"+ Add asset",blocks:"+ Add block",masters:"+ Add "+MASTERS[S.master].one,movements:"⇄ Log a movement"}[t];
   $("deskAdd").textContent=dl||"";$("deskAdd").hidden=!dl||!S.canWrite||((t==="blocks"||t==="masters")&&document.body.classList.contains("not-admin"));
@@ -1026,7 +1031,11 @@ document.addEventListener("click",e=>{
 $("deskAdd").addEventListener("click",()=>{if(S.tab==="assets")openAsset(null);else if(S.tab==="blocks")openBlock(null);else if(S.tab==="masters")openMaster(null);else if(S.tab==="movements")openMove(null);});
 $("sideAdd").addEventListener("click",()=>openAsset(null));
 $("bnMove").addEventListener("click",()=>openMove(null));
-$("abBack").addEventListener("click",()=>{location.hash=S.tab==="masters"&&S.masterOpen?"#masters":"#home";});
+function setDrawer(open){document.querySelector(".side").classList.toggle("open",open);$("sideBg").hidden=!open;$("abMenu").setAttribute("aria-expanded",String(open));document.body.classList.toggle("drawer-open",open);}
+$("abMenu").addEventListener("click",()=>setDrawer(true));
+$("sideBg").addEventListener("click",()=>setDrawer(false));
+document.querySelector(".side").addEventListener("click",e=>{if(isMobile()&&e.target.closest("a,button"))setTimeout(()=>setDrawer(false),0);});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")setDrawer(false);});
 $("abAdd").addEventListener("click",()=>{if(S.tab==="blocks")openBlock(null);else if(S.tab==="masters")openMaster(null);else openAsset(null);});
 for(const id of ["fBlockH","fBlockA","fBlockM"])$(id).addEventListener("change",e=>{S.block=e.target.value;render();});
 $("sideMove").addEventListener("click",()=>openMove(null));

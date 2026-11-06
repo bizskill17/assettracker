@@ -203,8 +203,7 @@
     if (!me) return;
     const html = `<div class="userchip"><span>Signed in as <b></b> · <span class="r"></span></span><button type="button">Log out</button></div>`;
     const side = document.querySelector(".side");
-    const home = document.getElementById("view-home");
-    for (const [parent, extra] of [[side, ""], [home, "homeuser"]]) {
+    for (const [parent, extra] of [[side, ""]]) {
       if (!parent) continue;
       const n = el(html); if (extra) n.classList.add(extra);
       n.querySelector("b").textContent = me.name;
